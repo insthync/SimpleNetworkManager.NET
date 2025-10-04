@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35707.178 d17.12
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleNetworkManager.NET", "SimpleNetworkManager.NET\SimpleNetworkManager.NET.csproj", "{69E2691D-55F3-4F79-9AC0-C9239EF09453}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleNetworkManager.NET.Tests", "SimpleNetworkManager.NET.Tests\SimpleNetworkManager.NET.Tests.csproj", "{BF2D1659-2C46-4DA4-BC23-F9E215E272B1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{69E2691D-55F3-4F79-9AC0-C9239EF09453}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{69E2691D-55F3-4F79-9AC0-C9239EF09453}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{69E2691D-55F3-4F79-9AC0-C9239EF09453}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{69E2691D-55F3-4F79-9AC0-C9239EF09453}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BF2D1659-2C46-4DA4-BC23-F9E215E272B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BF2D1659-2C46-4DA4-BC23-F9E215E272B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BF2D1659-2C46-4DA4-BC23-F9E215E272B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BF2D1659-2C46-4DA4-BC23-F9E215E272B1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
