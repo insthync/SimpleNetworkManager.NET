@@ -46,6 +46,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
                 throw new ArgumentNullException(nameof(connection));
             }
 
+            connection.AssignConnectionId();
             if (_connections.TryAdd(connection.ConnectionId, connection))
             {
                 _logger.LogInformation("Added connection {ConnectionId}. Total connections: {ConnectionCount}",

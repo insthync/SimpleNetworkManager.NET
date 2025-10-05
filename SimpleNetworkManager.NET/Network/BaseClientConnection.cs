@@ -33,6 +33,8 @@ namespace Insthync.SimpleNetworkManager.NET.Network
 
         public void AssignConnectionId()
         {
+            if (ConnectionId > 0)
+                return;
             if (!s_unassignedConnectionIds.TryDequeue(out uint connectionId))
                 connectionId = Interlocked.Increment(ref s_connectionIdCounter);
             ConnectionId = connectionId;
