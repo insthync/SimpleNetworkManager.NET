@@ -37,7 +37,13 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
                 _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
                 await _tcpClient.ConnectAsync(hostname, port);
+
                 _clientConnection = new TcpClientConnection(_tcpClient, _loggerFactory.CreateLogger<TcpClientConnection>());
+
+                // Setup connection (events, some initial values)
+                SetupConnection();
+
+                // Handle the connection asynchronously
                 _clientConnection.HandleConnectionAsync(_cancellationTokenSource.Token).Forget();
 
                 _logger.LogInformation("Client connected: RemoteEndPoint={RemoteEndPoint}",
