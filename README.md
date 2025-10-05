@@ -1,4 +1,4 @@
-# simple-network-manager
+# SimpleNetworkManager.NET
 A simple .NET (TCP+MessagePack) network manager
 
 ## How to serve and make connection
