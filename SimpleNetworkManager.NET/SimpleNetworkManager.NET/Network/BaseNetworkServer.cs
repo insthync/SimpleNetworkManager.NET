@@ -6,10 +6,10 @@ using System.Threading;
 
 namespace Insthync.SimpleNetworkManager.NET.Network
 {
-    public abstract class BaseServer
+    public abstract class BaseNetworkServer
     {
         protected readonly ILoggerFactory _loggerFactory;
-        protected readonly ILogger<BaseServer> _logger;
+        protected readonly ILogger<BaseNetworkServer> _logger;
         protected readonly ConnectionManager _connectionManager;
         protected readonly MessageRouter _messageRouter;
         protected int _maxConnections;
@@ -22,10 +22,10 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         /// </summary>
         public abstract bool IsRunning { get; }
 
-        public BaseServer(ILoggerFactory loggerFactory)
+        public BaseNetworkServer(ILoggerFactory loggerFactory)
         {
             _loggerFactory = loggerFactory;
-            _logger = _loggerFactory.CreateLogger<BaseServer>();
+            _logger = _loggerFactory.CreateLogger<BaseNetworkServer>();
             _connectionManager = new ConnectionManager(_loggerFactory.CreateLogger<ConnectionManager>());
             _messageRouter = new MessageRouter(_loggerFactory.CreateLogger<MessageRouter>());
         }

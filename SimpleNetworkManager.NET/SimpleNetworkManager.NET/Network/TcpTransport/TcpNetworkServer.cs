@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
 {
-    public class TcpServer : BaseServer
+    public class TcpNetworkServer : BaseNetworkServer
     {
         private TcpListener? _tcpListener;
         private CancellationTokenSource? _cancellationTokenSource;
@@ -18,7 +18,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
 
         public override bool IsRunning => _isRunning;
 
-        public TcpServer(ILoggerFactory loggerFactory) : base(loggerFactory)
+        public TcpNetworkServer(ILoggerFactory loggerFactory) : base(loggerFactory)
         {
         }
 
