@@ -43,6 +43,19 @@ namespace Insthync.SimpleNetworkManager.NET.Network
             ClientConnection?.Dispose();
         }
 
+        public void RegisterHandler<T>(BaseMessageHandler<T> handler)
+            where T : BaseMessage
+        {
+            _messageRouterService.RegisterHandler(handler);
+        }
+
+        public void RegisterHandler<TRequest, TResponse>(BaseRequestResponseMessageHandler<TRequest, TResponse> handler)
+            where TRequest : BaseRequestMessage
+            where TResponse : BaseResponseMessage
+        {
+            _messageRouterService.RegisterHandler(handler);
+        }
+
         protected virtual void SetupConnection()
         {
             if (ClientConnection == null)
