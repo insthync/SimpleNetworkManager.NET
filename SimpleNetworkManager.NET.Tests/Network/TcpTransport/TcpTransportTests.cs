@@ -1,0 +1,107 @@
+﻿using Insthync.SimpleNetworkManager.NET.Network.TcpTransport;
+using Microsoft.Extensions.Logging;
+using Moq;
+
+namespace Insthync.SimpleNetworkManager.NET.Tests.Network.TcpTransport
+{
+    public class TcpTransportTests
+    {
+        private readonly Mock<ILoggerFactory> _loggerFactoryMock;
+        private readonly Mock<ILogger> _loggerMock;
+
+        public TcpTransportTests()
+        {
+            _loggerMock = new Mock<ILogger>();
+            _loggerFactoryMock = new Mock<ILoggerFactory>();
+
+            _loggerFactoryMock
+                .Setup(f => f.CreateLogger(It.IsAny<string>()))
+                .Returns(_loggerMock.Object);
+        }
+
+
+        [Fact]
+        public async Task TestSimpleConnection()
+        {
+            var server = new TcpNetworkServer(_loggerFactoryMock.Object);
+            var client = new TcpNetworkClient(_loggerFactoryMock.Object);
+
+            var serverCancelSrc = new CancellationTokenSource();
+            await server.StartAsync(7890, serverCancelSrc.Token);
+
+            var clientCancelSrc = new CancellationTokenSource();
+            await client.ConnectAsync("127.0.0.1", 7890, clientCancelSrc.Token);
+
+            Assert.True(server.IsRunning);
+            Assert.True(client.IsConnected);
+
+            await client.DisconnectAsync();
+            await server.StopAsync();
+
+            Assert.False(server.IsRunning);
+            Assert.False(client.IsConnected);
+        }
+
+        [Fact]
+        public async Task TestClientDisconnectionFromServer()
+        {
+            var server = new TcpNetworkServer(_loggerFactoryMock.Object);
+            var client = new TcpNetworkClient(_loggerFactoryMock.Object);
+
+            var serverCancelSrc = new CancellationTokenSource();
+            await server.StartAsync(7891, serverCancelSrc.Token);
+
+            var clientCancelSrc = new CancellationTokenSource();
+            await client.ConnectAsync("127.0.0.1", 7891, clientCancelSrc.Token);
+
+            Assert.True(server.IsRunning);
+            Assert.True(client.IsConnected);
+            // Wait a second for connection acceptance
+            await Task.Delay(1000);
+            Assert.Equal(1, server.ConnectionManager.ConnectionCount);
+
+            Assert.True(server.ConnectionManager.TryGetConnection(1, out var clientConnection));
+            Assert.NotNull(clientConnection);
+            await clientConnection.DisconnectAsync();
+            Assert.Equal(0, server.ConnectionManager.ConnectionCount);
+
+            // Wait a second for disconnection
+            await Task.Delay(1000);
+            Assert.False(client.IsConnected);
+
+            await server.StopAsync();
+
+            Assert.False(server.IsRunning);
+        }
+
+        [Fact]
+        public async Task TestClientDisconnectionFromClient()
+        {
+            var server = new TcpNetworkServer(_loggerFactoryMock.Object);
+            var client = new TcpNetworkClient(_loggerFactoryMock.Object);
+
+            var serverCancelSrc = new CancellationTokenSource();
+            await server.StartAsync(7892, serverCancelSrc.Token);
+
+            var clientCancelSrc = new CancellationTokenSource();
+            await client.ConnectAsync("127.0.0.1", 7892, clientCancelSrc.Token);
+
+            Assert.True(server.IsRunning);
+            Assert.True(client.IsConnected);
+            // Wait a second for connection acceptance
+            await Task.Delay(1000);
+            Assert.Equal(1, server.ConnectionManager.ConnectionCount);
+
+            await client.DisconnectAsync();
+            // Wait a second for disconnection
+            await Task.Delay(1000);
+            Assert.Equal(0, server.ConnectionManager.ConnectionCount);
+
+            Assert.False(client.IsConnected);
+
+            await server.StopAsync();
+
+            Assert.False(server.IsRunning);
+        }
+    }
+}
