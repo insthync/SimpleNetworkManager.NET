@@ -64,12 +64,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         /// <summary>
         /// Sends a message asynchronously to the connected client
         /// </summary>
-        public abstract UniTask SendMessageAsync<T>(T message) where T : BaseMessage;
-
-        /// <summary>
-        /// Disconnects the client gracefully
-        /// </summary>
-        public abstract UniTask DisconnectAsync();
+        public abstract UniTask SendMessageAsync(BaseMessage message);
 
         /// <summary>
         /// Sends a serialization error message to the client

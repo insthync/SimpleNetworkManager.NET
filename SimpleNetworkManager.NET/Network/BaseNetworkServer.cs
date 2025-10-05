@@ -31,8 +31,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
             _messageRouterService = new MessageRouterService(_loggerFactory.CreateLogger<MessageRouterService>());
         }
 
-        public async UniTask SendMessageAsync<T>(uint connectionId, T message)
-            where T : BaseMessage
+        public async UniTask SendMessageAsync(uint connectionId, BaseMessage message)
         {
             if (!_connectionManager.TryGetConnection(connectionId, out var clientConnection))
                 return;

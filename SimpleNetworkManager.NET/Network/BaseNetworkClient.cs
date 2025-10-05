@@ -24,8 +24,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
             _messageRouterService = new MessageRouterService(_loggerFactory.CreateLogger<MessageRouterService>());
         }
 
-        public async UniTask SendMessageAsync<T>(T message)
-            where T : BaseMessage
+        public async UniTask SendMessageAsync(BaseMessage message)
         {
             if (ClientConnection == null)
                 return;
