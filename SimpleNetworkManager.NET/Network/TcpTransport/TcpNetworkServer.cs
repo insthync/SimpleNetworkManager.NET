@@ -34,7 +34,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
             try
             {
                 _logger.LogInformation("Starting TCP server on port {Port} with max connections {MaxConnections}",
-                    port, _maxConnections);
+                    port, MaxConnections);
 
                 // Create TCP listener
                 _tcpListener = new TcpListener(IPAddress.Any, port);
@@ -135,10 +135,10 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
                     _logger.LogDebug("Accepted new TCP client from {RemoteEndPoint}", tcpClientConnection.TcpClient.Client.RemoteEndPoint);
 
                     // Check connection limit after accepting
-                    if (_connectionManager.ConnectionCount >= _maxConnections)
+                    if (_connectionManager.ConnectionCount >= MaxConnections)
                     {
                         _logger.LogWarning("Server is at maximum capacity ({MaxConnections} connections), rejecting new connections",
-                            _maxConnections);
+                            MaxConnections);
 
                         // Reject the connection
                         tcpClientConnection.RejectConnectionAsync(ConnectionErrorTypes.CapacityRejection, "Server is at maximum capacity", false, 0).Forget();

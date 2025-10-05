@@ -12,7 +12,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         protected readonly ILogger<BaseNetworkServer> _logger;
         protected readonly ConnectionManager _connectionManager;
         protected readonly MessageRouter _messageRouter;
-        protected int _maxConnections;
+        public int MaxConnections = 1;
 
         public ConnectionManager ConnectionManager => _connectionManager;
         public MessageRouter MessageRouter => _messageRouter;
