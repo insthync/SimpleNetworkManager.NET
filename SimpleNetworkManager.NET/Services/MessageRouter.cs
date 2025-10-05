@@ -8,14 +8,18 @@ using System.Collections.Concurrent;
 
 namespace Insthync.SimpleNetworkManager.NET.Services
 {
+    /// <summary>
+    /// Routes incoming messages to appropriate message handlers based on message type.
+    /// Provides thread-safe handler registration and async message routing.
+    /// </summary>
     public class MessageRouter
     {
-        private ILogger<MessageRouter> _logger;
+        private readonly ILogger<MessageRouter> _logger;
         private readonly ConcurrentDictionary<uint, IMessageHandler> _handlers;
 
         public MessageRouter(ILogger<MessageRouter> logger)
         {
-            _logger = logger;
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _handlers = new ConcurrentDictionary<uint, IMessageHandler>();
         }
 
