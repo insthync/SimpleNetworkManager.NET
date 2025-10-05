@@ -16,10 +16,11 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
         private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly SemaphoreSlim _sendSemaphore;
 
-        private bool _isConnected;
         private UniTask? _receiveTask;
+        private bool _isConnected;
 
         public TcpClient TcpClient => _tcpClient;
+        public override bool IsConnected => _isConnected;
 
         /// <summary>
         /// Initializes a new TcpClientConnection instance
@@ -86,7 +87,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
         {
             try
             {
-                while (!cancellationToken.IsCancellationRequested && IsConnected)
+                while (!cancellationToken.IsCancellationRequested && _isConnected)
                 {
                     try
                     {
@@ -140,7 +141,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
         /// </summary>
         private async UniTask<byte[]?> ReceiveMessageAsync(CancellationToken cancellationToken)
         {
-            if (_networkStream == null || !IsConnected)
+            if (_networkStream == null || !_isConnected)
                 return null;
 
             try
@@ -217,7 +218,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
 
         public override async UniTask SendMessageAsync<T>(T message)
         {
-            if (_disposed || !IsConnected || _networkStream == null)
+            if (_disposed || !_isConnected || _networkStream == null)
             {
                 _logger.LogWarning("Attempted to send message to disconnected client {ConnectionId}", ConnectionId);
                 return;

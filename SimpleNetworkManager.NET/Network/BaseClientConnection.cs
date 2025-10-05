@@ -11,13 +11,17 @@ namespace Insthync.SimpleNetworkManager.NET.Network
 {
     public abstract class BaseClientConnection : IDisposable
     {
-        private static int s_connectionIdCounter = 0;
-        private static ConcurrentQueue<int> s_returnedConnectionIds = new ConcurrentQueue<int>();
+        private static uint s_connectionIdCounter = 0;
+        private static ConcurrentQueue<uint> s_unassignedConnectionIds = new ConcurrentQueue<uint>();
 
         protected readonly ILogger<BaseClientConnection> _logger;
         protected bool _disposed;
-        public int ConnectionId { get; private set; }
-        public bool IsConnected { get; private set; }
+
+        public uint ConnectionId { get; protected set; }
+        /// <summary>
+        /// Indicates whether the client is connected
+        /// </summary>
+        public abstract bool IsConnected { get; }
 
         public event MessageReceivedHandler? MessageReceived;
         public event DisconnectedHandler? Disconnected;
@@ -25,9 +29,19 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         public BaseClientConnection(ILogger<BaseClientConnection> logger)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            if (!s_returnedConnectionIds.TryDequeue(out int connectionId))
+        }
+
+        public void AssignConnectionId()
+        {
+            if (!s_unassignedConnectionIds.TryDequeue(out uint connectionId))
                 connectionId = Interlocked.Increment(ref s_connectionIdCounter);
             ConnectionId = connectionId;
+        }
+
+        public void UnassignConnectionId()
+        {
+            if (ConnectionId > 0)
+                s_unassignedConnectionIds.Enqueue(ConnectionId);
         }
 
         public void OnMessageReceived(byte[] message)
@@ -210,8 +224,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
                 return;
 
             _disposed = true;
-
-            s_returnedConnectionIds.Enqueue(ConnectionId);
+            UnassignConnectionId();
         }
     }
 }
