@@ -77,17 +77,6 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
             }
         }
 
-        public override async UniTask DisconnectAsync()
-        {
-            if (_clientConnection == null || !_clientConnection.IsConnected)
-            {
-                _logger.LogWarning("Client is not connecting");
-                return;
-            }
-            await _clientConnection.DisconnectAsync();
-            _clientConnection?.Dispose();
-        }
-
         public void Dispose()
         {
             if (_disposed)

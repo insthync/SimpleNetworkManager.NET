@@ -1,4 +1,5 @@
 ﻿using Cysharp.Threading.Tasks;
+using Insthync.SimpleNetworkManager.NET.Messages;
 using Insthync.SimpleNetworkManager.NET.Services;
 using Microsoft.Extensions.Logging;
 using System;
@@ -10,9 +11,9 @@ namespace Insthync.SimpleNetworkManager.NET.Network
     {
         protected readonly ILoggerFactory _loggerFactory;
         protected readonly ILogger<BaseNetworkClient> _logger;
-        protected readonly MessageRouter _messageRouter;
+        protected readonly MessageRouterService _messageRouter;
 
-        public MessageRouter MessageRouter => _messageRouter;
+        public MessageRouterService MessageRouter => _messageRouter;
         public abstract BaseClientConnection? ClientConnection { get; }
         public bool IsConnected => ClientConnection?.IsConnected ?? false;
 
@@ -20,7 +21,26 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         {
             _loggerFactory = loggerFactory;
             _logger = _loggerFactory.CreateLogger<BaseNetworkClient>();
-            _messageRouter = new MessageRouter(_loggerFactory.CreateLogger<MessageRouter>());
+            _messageRouter = new MessageRouterService(_loggerFactory.CreateLogger<MessageRouterService>());
+        }
+
+        public async UniTask SendMessageAsync<T>(T message)
+            where T : BaseMessage
+        {
+            if (ClientConnection == null)
+                return;
+            await ClientConnection.SendMessageAsync(message);
+        }
+
+        public async UniTask DisconnectAsync()
+        {
+            if (ClientConnection == null || !ClientConnection.IsConnected)
+            {
+                _logger.LogWarning("Client is not connecting");
+                return;
+            }
+            await ClientConnection.DisconnectAsync();
+            ClientConnection?.Dispose();
         }
 
         protected virtual void SetupConnection()
@@ -73,6 +93,5 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         }
 
         public abstract UniTask ConnectAsync(string hostname, int port, CancellationToken cancellationToken);
-        public abstract UniTask DisconnectAsync();
     }
 }

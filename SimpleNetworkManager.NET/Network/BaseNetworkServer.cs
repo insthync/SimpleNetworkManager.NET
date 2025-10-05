@@ -1,4 +1,5 @@
 ﻿using Cysharp.Threading.Tasks;
+using Insthync.SimpleNetworkManager.NET.Messages;
 using Insthync.SimpleNetworkManager.NET.Services;
 using Microsoft.Extensions.Logging;
 using System;
@@ -11,11 +12,11 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         protected readonly ILoggerFactory _loggerFactory;
         protected readonly ILogger<BaseNetworkServer> _logger;
         protected readonly ConnectionManager _connectionManager;
-        protected readonly MessageRouter _messageRouter;
+        protected readonly MessageRouterService _messageRouter;
         public int MaxConnections = 1;
 
         public ConnectionManager ConnectionManager => _connectionManager;
-        public MessageRouter MessageRouter => _messageRouter;
+        public MessageRouterService MessageRouter => _messageRouter;
 
         /// <summary>
         /// Indicates whether the server is currently running
@@ -27,7 +28,26 @@ namespace Insthync.SimpleNetworkManager.NET.Network
             _loggerFactory = loggerFactory;
             _logger = _loggerFactory.CreateLogger<BaseNetworkServer>();
             _connectionManager = new ConnectionManager(_loggerFactory.CreateLogger<ConnectionManager>());
-            _messageRouter = new MessageRouter(_loggerFactory.CreateLogger<MessageRouter>());
+            _messageRouter = new MessageRouterService(_loggerFactory.CreateLogger<MessageRouterService>());
+        }
+
+        public async UniTask SendMessageAsync<T>(uint connectionId, T message)
+            where T : BaseMessage
+        {
+            if (!_connectionManager.TryGetConnection(connectionId, out var clientConnection))
+                return;
+            if (clientConnection == null || !clientConnection.IsConnected)
+                return;
+            await clientConnection.SendMessageAsync(message);
+        }
+
+        public async UniTask DisconnectAsync(uint connectionId)
+        {
+            if (!_connectionManager.TryGetConnection(connectionId, out var clientConnection))
+                return;
+            if (clientConnection == null || !clientConnection.IsConnected)
+                return;
+            await clientConnection.DisconnectAsync();
         }
 
         protected virtual void AddConnection(BaseClientConnection clientConnection)
