@@ -1,6 +1,7 @@
 ﻿using Cysharp.Threading.Tasks;
 using Insthync.SimpleNetworkManager.NET.Services;
 using Microsoft.Extensions.Logging;
+using System.Threading;
 
 namespace Insthync.SimpleNetworkManager.NET.Network
 {
@@ -21,7 +22,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
             _messageRouter = new MessageRouter(_loggerFactory.CreateLogger<MessageRouter>());
         }
 
-        public abstract UniTask ConnectAsync(string hostname, int port);
+        public abstract UniTask ConnectAsync(string hostname, int port, CancellationToken cancellationToken);
         public abstract UniTask DisconnectAsync();
     }
 }
