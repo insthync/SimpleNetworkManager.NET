@@ -32,7 +32,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         /// Adds a new connection to the manager
         /// </summary>
         /// <param name="connection">Connection to add</param>
-        public void AddConnection(BaseClientConnection connection)
+        internal void AddConnection(BaseClientConnection connection)
         {
             if (_disposed)
             {
@@ -63,7 +63,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         /// Removes a connection by connection ID
         /// </summary>
         /// <param name="connectionId">Connection ID of connection to remove</param>
-        public void RemoveConnection(uint connectionId)
+        internal void RemoveConnection(uint connectionId)
         {
             if (_disposed)
             {
@@ -86,17 +86,18 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         /// Retrieves a connection by connection ID
         /// </summary>
         /// <param name="connectionId">Connection ID to lookup</param>
-        /// <returns>Connection instance or null if not found</returns>
-        public BaseClientConnection? GetConnection(uint connectionId)
+        /// <param name="clientConnection">Connection instance or null if not found</param>
+        /// <returns>False if not found</returns>
+        public bool TryGetConnection(uint connectionId, out BaseClientConnection? clientConnection)
         {
             if (_disposed)
             {
                 _logger.LogWarning("Attempted to get connection from disposed ConnectionManager");
-                return null;
+                clientConnection = null;
+                return false;
             }
 
-            _connections.TryGetValue(connectionId, out var connection);
-            return connection;
+            return _connections.TryGetValue(connectionId, out clientConnection);
         }
 
         /// <summary>
