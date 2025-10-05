@@ -1,4 +1,5 @@
 ﻿using Insthync.SimpleNetworkManager.NET.Network.TcpTransport;
+using Insthync.SimpleNetworkManager.NET.Tests.Messages;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -18,7 +19,6 @@ namespace Insthync.SimpleNetworkManager.NET.Tests.Network.TcpTransport
                 .Setup(f => f.CreateLogger(It.IsAny<string>()))
                 .Returns(_loggerMock.Object);
         }
-
 
         [Fact]
         public async Task TestSimpleConnection()
@@ -102,6 +102,83 @@ namespace Insthync.SimpleNetworkManager.NET.Tests.Network.TcpTransport
             await server.StopAsync();
 
             Assert.False(server.IsRunning);
+        }
+
+        [Fact]
+        public async Task TestMessageFromClientHandling()
+        {
+            var server = new TcpNetworkServer(_loggerFactoryMock.Object);
+            var serverTestMsgHandler = new TestMessageHandler();
+            server.MessageRouter.RegisterHandler(serverTestMsgHandler);
+            var client = new TcpNetworkClient(_loggerFactoryMock.Object);
+            var clientTestMsgHandler = new TestMessageHandler();
+            client.MessageRouter.RegisterHandler(clientTestMsgHandler);
+
+            var serverCancelSrc = new CancellationTokenSource();
+            await server.StartAsync(7893, serverCancelSrc.Token);
+
+            var clientCancelSrc = new CancellationTokenSource();
+            await client.ConnectAsync("127.0.0.1", 7893, clientCancelSrc.Token);
+
+            Assert.True(server.IsRunning);
+            Assert.True(client.IsConnected);
+
+            Assert.NotNull(client.ClientConnection);
+            await client.ClientConnection.SendMessageAsync(new TestMessage()
+            {
+                stringVal = "HelloMsgClient",
+            });
+
+            // Wait a second for message sending
+            await Task.Delay(1000);
+            Assert.Equal("HelloMsgClient", serverTestMsgHandler.stringVal);
+
+            await client.DisconnectAsync();
+            await server.StopAsync();
+
+            Assert.False(server.IsRunning);
+            Assert.False(client.IsConnected);
+        }
+
+        [Fact]
+        public async Task TestMessageFromServerHandling()
+        {
+            var server = new TcpNetworkServer(_loggerFactoryMock.Object);
+            var serverTestMsgHandler = new TestMessageHandler();
+            server.MessageRouter.RegisterHandler(serverTestMsgHandler);
+            var client = new TcpNetworkClient(_loggerFactoryMock.Object);
+            var clientTestMsgHandler = new TestMessageHandler();
+            client.MessageRouter.RegisterHandler(clientTestMsgHandler);
+
+            var serverCancelSrc = new CancellationTokenSource();
+            await server.StartAsync(7894, serverCancelSrc.Token);
+
+            var clientCancelSrc = new CancellationTokenSource();
+            await client.ConnectAsync("127.0.0.1", 7894, clientCancelSrc.Token);
+
+            Assert.True(server.IsRunning);
+            Assert.True(client.IsConnected);
+
+            // Wait a second for connection acceptance
+            await Task.Delay(1000);
+            Assert.Equal(1, server.ConnectionManager.ConnectionCount);
+
+            Assert.True(server.ConnectionManager.TryGetConnection(1, out var clientConnection));
+            Assert.NotNull(clientConnection);
+            await clientConnection.SendMessageAsync(new TestMessage()
+            {
+                stringVal = "HelloMsgFromServer",
+            });
+
+            // Wait a second for message sending
+            await Task.Delay(1000);
+            Assert.Equal("HelloMsgFromServer", clientTestMsgHandler.stringVal);
+
+            await client.DisconnectAsync();
+            await server.StopAsync();
+
+            Assert.False(server.IsRunning);
+            Assert.False(client.IsConnected);
         }
     }
 }
