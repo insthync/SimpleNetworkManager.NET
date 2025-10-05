@@ -12,14 +12,14 @@ namespace Insthync.SimpleNetworkManager.NET.Services
     /// Routes incoming messages to appropriate message handlers based on message type.
     /// Provides thread-safe handler registration and async message routing.
     /// </summary>
-    public class MessageRouter
+    public class MessageRouterService
     {
-        private readonly ILogger<MessageRouter> _logger;
+        private readonly ILogger<MessageRouterService> _logger;
         private readonly ConcurrentDictionary<uint, IMessageHandler> _handlers;
         private readonly ConcurrentDictionary<uint, IMessageHandler> _requestHandlers;
         private readonly ConcurrentDictionary<uint, IResponseMessageHandler> _responseHandlers;
 
-        public MessageRouter(ILogger<MessageRouter> logger)
+        public MessageRouterService(ILogger<MessageRouterService> logger)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _handlers = new ConcurrentDictionary<uint, IMessageHandler>();

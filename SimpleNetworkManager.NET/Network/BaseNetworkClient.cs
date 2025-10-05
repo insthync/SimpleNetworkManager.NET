@@ -11,9 +11,9 @@ namespace Insthync.SimpleNetworkManager.NET.Network
     {
         protected readonly ILoggerFactory _loggerFactory;
         protected readonly ILogger<BaseNetworkClient> _logger;
-        protected readonly MessageRouterService _messageRouter;
+        protected readonly MessageRouterService _messageRouterService;
 
-        public MessageRouterService MessageRouter => _messageRouter;
+        public MessageRouterService MessageRouterService => _messageRouterService;
         public abstract BaseClientConnection? ClientConnection { get; }
         public bool IsConnected => ClientConnection?.IsConnected ?? false;
 
@@ -21,7 +21,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         {
             _loggerFactory = loggerFactory;
             _logger = _loggerFactory.CreateLogger<BaseNetworkClient>();
-            _messageRouter = new MessageRouterService(_loggerFactory.CreateLogger<MessageRouterService>());
+            _messageRouterService = new MessageRouterService(_loggerFactory.CreateLogger<MessageRouterService>());
         }
 
         public async UniTask SendMessageAsync<T>(T message)
@@ -84,7 +84,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
                 _logger.LogDebug("Received message from server");
 
                 // Route the message to the appropriate handler
-                await _messageRouter.RouteMessageAsync(clientConnection, message);
+                await _messageRouterService.RouteMessageAsync(clientConnection, message);
             }
             catch (Exception ex)
             {

@@ -109,10 +109,10 @@ namespace Insthync.SimpleNetworkManager.NET.Tests.Network.TcpTransport
         {
             var server = new TcpNetworkServer(_loggerFactoryMock.Object);
             var serverTestMsgHandler = new TestMessageHandler();
-            server.MessageRouter.RegisterHandler(serverTestMsgHandler);
+            server.MessageRouterService.RegisterHandler(serverTestMsgHandler);
             var client = new TcpNetworkClient(_loggerFactoryMock.Object);
             var clientTestMsgHandler = new TestMessageHandler();
-            client.MessageRouter.RegisterHandler(clientTestMsgHandler);
+            client.MessageRouterService.RegisterHandler(clientTestMsgHandler);
 
             var serverCancelSrc = new CancellationTokenSource();
             await server.StartAsync(7893, serverCancelSrc.Token);
@@ -145,10 +145,10 @@ namespace Insthync.SimpleNetworkManager.NET.Tests.Network.TcpTransport
         {
             var server = new TcpNetworkServer(_loggerFactoryMock.Object);
             var serverTestMsgHandler = new TestMessageHandler();
-            server.MessageRouter.RegisterHandler(serverTestMsgHandler);
+            server.MessageRouterService.RegisterHandler(serverTestMsgHandler);
             var client = new TcpNetworkClient(_loggerFactoryMock.Object);
             var clientTestMsgHandler = new TestMessageHandler();
-            client.MessageRouter.RegisterHandler(clientTestMsgHandler);
+            client.MessageRouterService.RegisterHandler(clientTestMsgHandler);
 
             var serverCancelSrc = new CancellationTokenSource();
             await server.StartAsync(7894, serverCancelSrc.Token);

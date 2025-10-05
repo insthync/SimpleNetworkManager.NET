@@ -12,11 +12,11 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         protected readonly ILoggerFactory _loggerFactory;
         protected readonly ILogger<BaseNetworkServer> _logger;
         protected readonly ConnectionManager _connectionManager;
-        protected readonly MessageRouterService _messageRouter;
+        protected readonly MessageRouterService _messageRouterService;
         public int MaxConnections = 1;
 
         public ConnectionManager ConnectionManager => _connectionManager;
-        public MessageRouterService MessageRouter => _messageRouter;
+        public MessageRouterService MessageRouterService => _messageRouterService;
 
         /// <summary>
         /// Indicates whether the server is currently running
@@ -28,7 +28,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
             _loggerFactory = loggerFactory;
             _logger = _loggerFactory.CreateLogger<BaseNetworkServer>();
             _connectionManager = new ConnectionManager(_loggerFactory.CreateLogger<ConnectionManager>());
-            _messageRouter = new MessageRouterService(_loggerFactory.CreateLogger<MessageRouterService>());
+            _messageRouterService = new MessageRouterService(_loggerFactory.CreateLogger<MessageRouterService>());
         }
 
         public async UniTask SendMessageAsync<T>(uint connectionId, T message)
@@ -98,7 +98,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
                 _logger.LogDebug("Received message from client {ConnectionId}", clientConnection.ConnectionId);
 
                 // Route the message to the appropriate handler
-                await _messageRouter.RouteMessageAsync(clientConnection, message);
+                await _messageRouterService.RouteMessageAsync(clientConnection, message);
             }
             catch (Exception ex)
             {
