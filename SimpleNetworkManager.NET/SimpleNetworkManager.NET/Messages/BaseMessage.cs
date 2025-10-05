@@ -12,10 +12,12 @@ namespace Insthync.SimpleNetworkManager.NET.Messages
         /// </summary>
         public abstract uint GetMessageType();
 
+        public BaseMessage() { }
+
         /// <summary>
         /// Gets MessagePack serialization options for this message type
         /// </summary>
-        protected virtual MessagePackSerializerOptions GetMessagePackOptions()
+        public virtual MessagePackSerializerOptions GetMessagePackOptions()
         {
             return MessagePackSerializerOptions.Standard;
         }
@@ -57,25 +59,25 @@ namespace Insthync.SimpleNetworkManager.NET.Messages
         /// <summary>
         /// Deserializes a message from binary format
         /// </summary>
-        /// <param name="data">Binary data containing the message</param>
+        /// <param name="message">Binary data containing the message</param>
         /// <param name="messageType">The message type extracted from the header</param>
         /// <returns>Deserialized message data (without header)</returns>
-        public static byte[] DeserializeData(byte[] data, out uint messageType)
+        public static byte[] ExtractMessageData(byte[] message, out uint messageType)
         {
-            if (data.Length < 8)
+            if (message.Length < 8)
                 throw new ArgumentException("Data too short to contain message header");
 
             // Read total size (for validation)
-            var totalSize = BitConverter.ToInt32(data, 0);
-            if (totalSize != data.Length)
+            var totalSize = BitConverter.ToInt32(message, 0);
+            if (totalSize != message.Length)
                 throw new ArgumentException("Message size mismatch");
 
             // Read message type
-            messageType = BitConverter.ToUInt32(data, 4);
+            messageType = BitConverter.ToUInt32(message, 4);
 
             // Extract message data
-            var messageData = new byte[data.Length - 8];
-            Array.Copy(data, 8, messageData, 0, messageData.Length);
+            var messageData = new byte[message.Length - 8];
+            Array.Copy(message, 8, messageData, 0, messageData.Length);
 
             return messageData;
         }
