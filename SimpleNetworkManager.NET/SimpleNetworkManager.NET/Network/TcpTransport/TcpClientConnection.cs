@@ -150,38 +150,20 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
                 using var combinedCts = CancellationTokenSource.CreateLinkedTokenSource(
                     cancellationToken, timeoutCts.Token);
 
-                // Read message size (4 bytes)
-                var sizeBuffer = new byte[4];
-                var bytesRead = await ReadExactAsync(sizeBuffer, 4, combinedCts.Token);
-                if (bytesRead == 0 || bytesRead < 4)
-                    return null; // Connection closed
-
-                var dataSize = BitConverter.ToInt32(sizeBuffer, 0);
-                int minSize = 8;
-                int maxSize = 1024 * 1024; // 1 MB
-                if (dataSize < minSize || dataSize > maxSize)
+                try
+                {
+                    return await _networkStream.ReadMessageAsync(combinedCts.Token);
+                }
+                catch (InvalidMessageSizeException sizeEx)
                 {
                     _logger.LogWarning("Invalid message size {MessageSize} from client {ConnectionId}",
-                        dataSize, ConnectionId);
+                        sizeEx.Size, ConnectionId);
 
                     // Send error about invalid message size
                     await SendErrorMessageAsync(MessageTypes.Error,
-                        $"Invalid message size: {dataSize}. Must be between {minSize} and {maxSize} bytes.");
+                        $"Invalid message size: {sizeEx.Size}. Must be between {sizeEx.MinSize} and {sizeEx.MaxSize} bytes.");
                     return null;
                 }
-
-                // Read the complete message (including the size we already read)
-                var dataBuffer = new byte[dataSize];
-                sizeBuffer.CopyTo(dataBuffer, 0);
-
-                // Already read 4 bytes for message size, so decrease by 4
-                var remainingBytes = dataSize - 4;
-                // Read next bytes by remaining bytes, skip 4 bytes (message size which already copied above)
-                bytesRead = await ReadExactAsync(dataBuffer, remainingBytes, combinedCts.Token, 4);
-                if (bytesRead != remainingBytes)
-                    return null; // Connection closed
-
-                return dataBuffer;
             }
             catch (OperationCanceledException ex) when (ex.CancellationToken.IsCancellationRequested)
             {
@@ -233,28 +215,6 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
             }
         }
 
-        /// <summary>
-        /// Reads exactly the specified number of bytes from the network stream
-        /// </summary>
-        private async UniTask<int> ReadExactAsync(byte[] buffer, int count, CancellationToken cancellationToken, int offset = 0)
-        {
-            if (_networkStream == null)
-                return 0;
-
-            int totalBytesRead = 0;
-            while (totalBytesRead < count && !cancellationToken.IsCancellationRequested)
-            {
-                var bytesRead = await _networkStream.ReadAsync(
-                    buffer, offset + totalBytesRead, count - totalBytesRead, cancellationToken);
-
-                if (bytesRead == 0)
-                    break; // Connection closed
-
-                totalBytesRead += bytesRead;
-            }
-            return totalBytesRead;
-        }
-
         public override async UniTask SendMessageAsync<T>(T message)
         {
             if (_disposed || !IsConnected || _networkStream == null)
@@ -263,20 +223,14 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
                 return;
             }
 
-            if (message is not BaseMessage baseMessage)
-            {
-                _logger.LogError("Message must inherit from BaseMessage. Got: {MessageType}", typeof(T).Name);
-                throw new ArgumentException("Message must inherit from BaseMessage", nameof(message));
-            }
-
             await _sendSemaphore.WaitAsync(_cancellationTokenSource.Token);
-            uint messageType = baseMessage.GetMessageType();
             try
             {
-                byte[] serializedData;
+                uint messageType = message.GetMessageType();
+
                 try
                 {
-                    serializedData = baseMessage.Serialize();
+                    await _networkStream.WriteMessageAsync(message, _cancellationTokenSource.Token);
                 }
                 catch (MessagePack.MessagePackSerializationException ex)
                 {
@@ -293,9 +247,6 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
                         messageType, ConnectionId);
                     throw;
                 }
-
-                await _networkStream.WriteAsync(serializedData, _cancellationTokenSource.Token);
-                await _networkStream.FlushAsync(_cancellationTokenSource.Token);
 
                 _logger.LogDebug("Sent message type {MessageType} to client {ConnectionId}",
                     messageType, ConnectionId);
