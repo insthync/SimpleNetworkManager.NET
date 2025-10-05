@@ -33,7 +33,7 @@ namespace Insthync.SimpleNetworkManager.NET.Messages
 
         /// <summary>
         /// Serializes the message to binary format: size(int) + messageType(uint) + data(MessagePack)
-        /// Uses the abstract MessageType property from the concrete class.
+        /// Uses the abstract GetMessageType() function from the concrete class.
         /// </summary>
         /// <returns>Binary representation of the message</returns>
         public byte[] Serialize()
@@ -47,7 +47,7 @@ namespace Insthync.SimpleNetworkManager.NET.Messages
             // Write total size (including header)
             BitConverter.GetBytes(buffer.Length).CopyTo(buffer, 0);
 
-            // Write message type (uses the abstract property from concrete class)
+            // Write message type (uses the abstract function from concrete class)
             BitConverter.GetBytes(GetMessageType()).CopyTo(buffer, 4);
 
             // Write message data
