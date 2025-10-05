@@ -15,6 +15,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
         private CancellationTokenSource? _cancellationTokenSource;
         private UniTask? _acceptConnectionsTask;
         private bool _isRunning;
+        private int _runningPort;
 
         public override bool IsRunning => _isRunning;
 
@@ -26,7 +27,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
         {
             if (_isRunning)
             {
-                _logger.LogWarning("Server is already running on port {Port}", port);
+                _logger.LogWarning("Server is already running on port {Port}", _runningPort);
                 return;
             }
 
@@ -46,11 +47,12 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
 
                 // Start accepting connections
                 _acceptConnectionsTask = AcceptConnectionsAsync(_cancellationTokenSource.Token);
-
+                _runningPort = port;
                 _logger.LogInformation("TCP server started successfully on port {Port}", port);
             }
             catch (Exception ex)
             {
+                _runningPort = 0;
                 _logger.LogError(ex, "Failed to start TCP server on port {Port}", port);
                 await StopAsync();
                 throw;
