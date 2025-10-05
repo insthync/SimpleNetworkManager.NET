@@ -14,6 +14,6 @@ namespace Insthync.SimpleNetworkManager.NET.Messages
         /// Generated automatically when the request is created.
         /// </summary>
         [Key(0)]
-        public Guid RequestId { get; set; }
+        public Guid RequestId { get; internal set; }
     }
 }

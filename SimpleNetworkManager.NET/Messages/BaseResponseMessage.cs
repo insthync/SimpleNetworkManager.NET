@@ -13,7 +13,7 @@ namespace Insthync.SimpleNetworkManager.NET.Messages
         /// Correlation ID that matches the original request's RequestId
         /// </summary>
         [Key(0)]
-        public Guid RequestId { get; set; }
+        public Guid RequestId { get; internal set; }
 
         /// <summary>
         /// Indicates if the request was successful
