@@ -44,13 +44,11 @@ namespace Insthync.SimpleNetworkManager.NET.Network
                 clientConnection.Disconnected -= OnClientDisconnected;
                 clientConnection.MessageReceived -= OnClientMessageReceived;
 
-                _logger.LogInformation("Client disconnected: ConnectionId={ConnectionId}",
-                    clientConnection.ConnectionId);
+                _logger.LogInformation("Client disconnected from server");
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Error handling client disconnection for ConnectionId={ConnectionId}",
-                    clientConnection.ConnectionId);
+                _logger.LogWarning(ex, "Error handling client disconnection from server");
             }
         }
 
@@ -63,14 +61,14 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         {
             try
             {
-                _logger.LogDebug("Received message from client {ConnectionId}", clientConnection.ConnectionId);
+                _logger.LogDebug("Received message from server");
 
                 // Route the message to the appropriate handler
                 await _messageRouter.RouteMessageAsync(clientConnection, message);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing message from client {ConnectionId}", clientConnection.ConnectionId);
+                _logger.LogError(ex, "Error processing message from server");
             }
         }
 
