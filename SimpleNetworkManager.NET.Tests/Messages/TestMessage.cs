@@ -3,11 +3,12 @@ using MessagePack;
 
 namespace Insthync.SimpleNetworkManager.NET.Tests.Messages
 {
-    [MessagePackObject]
+    [MessagePackObject] // <- This must be message pack object info: https://github.com/MessagePack-CSharp/MessagePack-CSharp
     public class TestMessage : BaseMessage
     {
         public override uint GetMessageType()
         {
+            // This must be unique
             return 1;
         }
 
