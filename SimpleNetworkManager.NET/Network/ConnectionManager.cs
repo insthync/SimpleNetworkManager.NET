@@ -9,7 +9,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
 {
     public class ConnectionManager : IDisposable
     {
-        private readonly ConcurrentDictionary<int, BaseClientConnection> _connections;
+        private readonly ConcurrentDictionary<uint, BaseClientConnection> _connections;
         private readonly ILogger<ConnectionManager> _logger;
         private bool _disposed;
 
@@ -25,7 +25,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         public ConnectionManager(ILogger<ConnectionManager> logger)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _connections = new ConcurrentDictionary<int, BaseClientConnection>();
+            _connections = new ConcurrentDictionary<uint, BaseClientConnection>();
         }
 
         /// <summary>
@@ -62,7 +62,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         /// Removes a connection by connection ID
         /// </summary>
         /// <param name="connectionId">Connection ID of connection to remove</param>
-        public void RemoveConnection(int connectionId)
+        public void RemoveConnection(uint connectionId)
         {
             if (_disposed)
             {
@@ -86,7 +86,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         /// </summary>
         /// <param name="connectionId">Connection ID to lookup</param>
         /// <returns>Connection instance or null if not found</returns>
-        public BaseClientConnection? GetConnection(int connectionId)
+        public BaseClientConnection? GetConnection(uint connectionId)
         {
             if (_disposed)
             {
