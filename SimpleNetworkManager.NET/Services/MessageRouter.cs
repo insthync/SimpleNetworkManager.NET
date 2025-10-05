@@ -76,7 +76,7 @@ namespace Insthync.SimpleNetworkManager.NET.Services
 
             var messageInstance = handler.GetMessageInstance();
             var dataType = messageInstance.GetType();
-            await handler.HandleDataAsync(MessagePackSerializer.Deserialize(messageInstance.GetType(), data, messageInstance.GetMessagePackOptions()));
+            await handler.HandleDataAsync(clientConnection, MessagePackSerializer.Deserialize(messageInstance.GetType(), data, messageInstance.GetMessagePackOptions()));
         }
     }
 }
