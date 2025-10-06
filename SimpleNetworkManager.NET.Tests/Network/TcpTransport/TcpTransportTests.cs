@@ -60,9 +60,7 @@ namespace Insthync.SimpleNetworkManager.NET.Tests.Network.TcpTransport
             await Task.Delay(1000);
             Assert.Equal(1, server.ConnectionManager.ConnectionCount);
 
-            Assert.True(server.ConnectionManager.TryGetConnection(1, out var clientConnection));
-            Assert.NotNull(clientConnection);
-            await clientConnection.DisconnectAsync();
+            await server.DisconnectAsync(1);
             Assert.Equal(0, server.ConnectionManager.ConnectionCount);
 
             // Wait a second for disconnection
@@ -124,7 +122,7 @@ namespace Insthync.SimpleNetworkManager.NET.Tests.Network.TcpTransport
             Assert.True(client.IsConnected);
 
             Assert.NotNull(client.ClientConnection);
-            await client.ClientConnection.SendMessageAsync(new TestMessage()
+            await client.SendMessageAsync(new TestMessage()
             {
                 stringVal = "HelloMsgClient",
             });
@@ -163,9 +161,7 @@ namespace Insthync.SimpleNetworkManager.NET.Tests.Network.TcpTransport
             await Task.Delay(1000);
             Assert.Equal(1, server.ConnectionManager.ConnectionCount);
 
-            Assert.True(server.ConnectionManager.TryGetConnection(1, out var clientConnection));
-            Assert.NotNull(clientConnection);
-            await clientConnection.SendMessageAsync(new TestMessage()
+            await server.SendMessageAsync(1, new TestMessage()
             {
                 stringVal = "HelloMsgFromServer",
             });
