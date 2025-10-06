@@ -12,10 +12,10 @@ namespace Insthync.SimpleNetworkManager.NET.Network
 {
     public abstract class BaseClientConnection : IDisposable
     {
-        private static uint s_connectionIdCounter = 0;
+        private static int s_connectionIdCounter = 0;
         private static ConcurrentQueue<uint> s_unassignedConnectionIds = new ConcurrentQueue<uint>();
 
-        private static uint s_requestIdCounter = 0;
+        private static int s_requestIdCounter = 0;
         private static ConcurrentQueue<uint> s_unassignedRequestIds = new ConcurrentQueue<uint>();
 
         protected readonly ILogger<BaseClientConnection> _logger;
@@ -37,17 +37,23 @@ namespace Insthync.SimpleNetworkManager.NET.Network
             _pendingResponses = new ConcurrentDictionary<uint, BaseResponseMessage>();
         }
 
+        private static uint InterlockedIncrementUInt(ref int location)
+        {
+            Interlocked.Increment(ref location);
+            return location < 0 ? (uint)(location + (long)uint.MaxValue + 1) : (uint)location;
+        }
+
         private static uint GetNewConnectionId()
         {
             if (!s_unassignedConnectionIds.TryDequeue(out uint connectionId))
-                connectionId = Interlocked.Increment(ref s_connectionIdCounter);
+                connectionId = InterlockedIncrementUInt(ref s_connectionIdCounter);
             return connectionId;
         }
 
         private static uint GetNewRequestId()
         {
             if (!s_unassignedRequestIds.TryDequeue(out uint requestId))
-                requestId = Interlocked.Increment(ref s_requestIdCounter);
+                requestId = InterlockedIncrementUInt(ref s_requestIdCounter);
             return requestId;
         }
 
@@ -117,7 +123,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
                 throw new TimeoutException($"Request timed out after {timeoutMs} milliseconds (RequestId: {requestId}).");
             }
 
-            if (response is not TResponse castedResponse)
+            if (!(response is TResponse castedResponse))
             {
                 throw new InvalidOperationException($"Response type mismatch. Expected {typeof(TResponse).Name}, got {response.GetType().Name}");
             }

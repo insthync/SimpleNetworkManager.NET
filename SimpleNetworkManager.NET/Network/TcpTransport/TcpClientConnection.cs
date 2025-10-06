@@ -17,7 +17,6 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
         private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly SemaphoreSlim _sendSemaphore;
 
-        private UniTask? _receiveTask;
         private bool _isConnected;
 
         public TcpClient TcpClient => _tcpClient;
@@ -312,10 +311,10 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
             }
         }
 
-        internal override async UniTask DisconnectAsync()
+        internal override UniTask DisconnectAsync()
         {
             if (_disposed || !_isConnected)
-                return;
+                return UniTask.CompletedTask;
 
             _logger.LogInformation("Disconnecting client {ConnectionId}", ConnectionId);
 
@@ -332,25 +331,9 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
                 _logger.LogWarning(ex, "Error during client {ConnectionId} disconnection", ConnectionId);
             }
 
-            // Wait for receive task to complete
-            if (_receiveTask != null)
-            {
-                try
-                {
-                    await _receiveTask.Value;
-                }
-                catch (OperationCanceledException)
-                {
-                    // Expected when cancellation is requested
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Error waiting for receive task completion for client {ConnectionId}", ConnectionId);
-                }
-            }
-
             // Raise disconnected event
             OnDisconnected();
+            return UniTask.CompletedTask;
         }
 
         public override async UniTask RejectConnectionAsync(ConnectionErrorTypes errorType, string errorText, bool shouldRetry, int retryDelayMs)
