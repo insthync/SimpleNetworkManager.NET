@@ -6,6 +6,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Insthync.SimpleNetworkManager.NET.Network
 {
@@ -15,6 +16,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         private static ConcurrentQueue<uint> s_unassignedConnectionIds = new ConcurrentQueue<uint>();
 
         protected readonly ILogger<BaseClientConnection> _logger;
+        protected readonly ConcurrentDictionary<Guid, BaseResponseMessage> _pendingResponses = new ConcurrentDictionary<Guid, BaseResponseMessage>();
         protected bool _disposed;
 
         public uint ConnectionId { get; protected set; }
@@ -64,12 +66,55 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         /// <summary>
         /// Sends a message asynchronously to the connected client
         /// </summary>
-        public abstract UniTask SendMessageAsync(BaseMessage message);
+        internal abstract UniTask SendMessageAsync(BaseMessage message);
 
         /// <summary>
         /// Disconnects the client gracefully
         /// </summary>
-        public abstract UniTask DisconnectAsync();
+        internal abstract UniTask DisconnectAsync();
+
+        internal async UniTask<TResponse> SendRequestAsync<TResponse>(BaseRequestMessage request)
+            where TResponse : BaseResponseMessage
+        {
+            Guid requestId = Guid.NewGuid();
+            request.RequestId = requestId;
+            await SendMessageAsync(request);
+
+            // Waiting for the response
+            BaseResponseMessage? response;
+            // 10 seconds timeout
+            int timeoutCountDown = 10_000;
+            do
+            {
+                if (timeoutCountDown <= 0)
+                {
+                    response = null;
+                    break;
+                }
+                await Task.Delay(100);
+                timeoutCountDown -= 100;
+            }
+            while (!_pendingResponses.TryRemove(requestId, out response));
+
+            if (response == null)
+            {
+                throw new TimeoutException($"Request timed out after 10 seconds (RequestId: {requestId}).");
+            }
+
+            if (response is not TResponse castedResponse)
+            {
+                throw new InvalidOperationException($"Response type mismatch. Expected {typeof(TResponse).Name}, got {response.GetType().Name}");
+            }
+
+            return castedResponse;
+        }
+
+        internal void Responded(BaseResponseMessage? response)
+        {
+            if (response == null)
+                return;
+            _pendingResponses.TryAdd(response.RequestId, response);
+        }
 
         /// <summary>
         /// Sends a serialization error message to the client

@@ -216,7 +216,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
             }
         }
 
-        public override async UniTask SendMessageAsync(BaseMessage message)
+        internal override async UniTask SendMessageAsync(BaseMessage message)
         {
             if (_disposed || !_isConnected || _networkStream == null)
             {
@@ -309,7 +309,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
             }
         }
 
-        public override async UniTask DisconnectAsync()
+        internal override async UniTask DisconnectAsync()
         {
             if (_disposed || !_isConnected)
                 return;

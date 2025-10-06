@@ -3,6 +3,7 @@ using Insthync.SimpleNetworkManager.NET.Messages;
 using Insthync.SimpleNetworkManager.NET.Services;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 
 namespace Insthync.SimpleNetworkManager.NET.Network
@@ -34,19 +35,30 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         public async UniTask SendMessageAsync(uint connectionId, BaseMessage message)
         {
             if (!_connectionManager.TryGetConnection(connectionId, out var clientConnection))
-                return;
+                throw new KeyNotFoundException($"No connection found with ID {connectionId}.");
             if (clientConnection == null || !clientConnection.IsConnected)
-                return;
+                throw new InvalidOperationException($"Cannot send message: client {connectionId} is not connected.");
             await clientConnection.SendMessageAsync(message);
         }
 
         public async UniTask DisconnectAsync(uint connectionId)
         {
             if (!_connectionManager.TryGetConnection(connectionId, out var clientConnection))
-                return;
+                throw new KeyNotFoundException($"No connection found with ID {connectionId}.");
             if (clientConnection == null || !clientConnection.IsConnected)
-                return;
+                throw new InvalidOperationException($"Cannot disconnect: client {connectionId} is not connected.");
             await clientConnection.DisconnectAsync();
+        }
+
+        public async UniTask<TResponse?> SendRequestAsync<TResponse>(uint connectionId, BaseRequestMessage request)
+            where TResponse : BaseResponseMessage
+        {
+            if (!_connectionManager.TryGetConnection(connectionId, out var clientConnection))
+                throw new KeyNotFoundException($"No connection found with ID {connectionId}.");
+            if (clientConnection == null || !clientConnection.IsConnected)
+                throw new InvalidOperationException($"Cannot send request: client {connectionId} is not connected.");
+            _messageRouterService.RegisterHandler(new ResponseMessageHandler<TResponse>(), true);
+            return await clientConnection.SendRequestAsync<TResponse>(request);
         }
 
         public void RegisterHandler<T>(BaseMessageHandler<T> handler)
@@ -55,7 +67,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
             _messageRouterService.RegisterHandler(handler);
         }
 
-        public void RegisterHandler<TRequest, TResponse>(BaseRequestResponseMessageHandler<TRequest, TResponse> handler)
+        public void RegisterHandler<TRequest, TResponse>(BaseRequestMessageHandler<TRequest, TResponse> handler)
             where TRequest : BaseRequestMessage
             where TResponse : BaseResponseMessage
         {

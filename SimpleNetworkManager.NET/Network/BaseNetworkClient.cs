@@ -26,20 +26,26 @@ namespace Insthync.SimpleNetworkManager.NET.Network
 
         public async UniTask SendMessageAsync(BaseMessage message)
         {
-            if (ClientConnection == null)
-                return;
+            if (ClientConnection == null || !ClientConnection.IsConnected)
+                throw new InvalidOperationException("Cannot send message: client is not connected.");
             await ClientConnection.SendMessageAsync(message);
         }
 
         public async UniTask DisconnectAsync()
         {
             if (ClientConnection == null || !ClientConnection.IsConnected)
-            {
-                _logger.LogWarning("Client is not connecting");
-                return;
-            }
+                throw new InvalidOperationException("Cannot disconnect: client is not connected.");
             await ClientConnection.DisconnectAsync();
-            ClientConnection?.Dispose();
+            ClientConnection.Dispose();
+        }
+
+        public async UniTask<TResponse?> SendRequestAsync<TResponse>(BaseRequestMessage request)
+            where TResponse : BaseResponseMessage
+        {
+            if (ClientConnection == null || !ClientConnection.IsConnected)
+                throw new InvalidOperationException("Cannot send request: client is not connected.");
+            _messageRouterService.RegisterHandler(new ResponseMessageHandler<TResponse>(), true);
+            return await ClientConnection.SendRequestAsync<TResponse>(request);
         }
 
         public void RegisterHandler<T>(BaseMessageHandler<T> handler)
@@ -48,7 +54,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
             _messageRouterService.RegisterHandler(handler);
         }
 
-        public void RegisterHandler<TRequest, TResponse>(BaseRequestResponseMessageHandler<TRequest, TResponse> handler)
+        public void RegisterHandler<TRequest, TResponse>(BaseRequestMessageHandler<TRequest, TResponse> handler)
             where TRequest : BaseRequestMessage
             where TResponse : BaseResponseMessage
         {
