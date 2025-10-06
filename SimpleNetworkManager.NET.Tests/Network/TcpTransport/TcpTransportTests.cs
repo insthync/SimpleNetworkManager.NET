@@ -56,15 +56,15 @@ namespace Insthync.SimpleNetworkManager.NET.Tests.Network.TcpTransport
 
             Assert.True(server.IsRunning);
             Assert.True(client.IsConnected);
-            // Wait a second for connection acceptance
-            await Task.Delay(1000);
+            // Wait a bit for connection acceptance
+            await Task.Delay(10);
             Assert.Equal(1, server.ConnectionManager.ConnectionCount);
 
-            await server.DisconnectAsync(1);
+            await server.DisconnectAsync(server.ConnectionManager.GetAllConnections().First().ConnectionId);
             Assert.Equal(0, server.ConnectionManager.ConnectionCount);
 
-            // Wait a second for disconnection
-            await Task.Delay(1000);
+            // Wait a bit for disconnection
+            await Task.Delay(10);
             Assert.False(client.IsConnected);
 
             await server.StopAsync();
@@ -86,13 +86,13 @@ namespace Insthync.SimpleNetworkManager.NET.Tests.Network.TcpTransport
 
             Assert.True(server.IsRunning);
             Assert.True(client.IsConnected);
-            // Wait a second for connection acceptance
-            await Task.Delay(1000);
+            // Wait a bit for connection acceptance
+            await Task.Delay(10);
             Assert.Equal(1, server.ConnectionManager.ConnectionCount);
 
             await client.DisconnectAsync();
-            // Wait a second for disconnection
-            await Task.Delay(1000);
+            // Wait a bit for disconnection
+            await Task.Delay(10);
             Assert.Equal(0, server.ConnectionManager.ConnectionCount);
 
             Assert.False(client.IsConnected);
@@ -127,8 +127,8 @@ namespace Insthync.SimpleNetworkManager.NET.Tests.Network.TcpTransport
                 stringVal = "HelloMsgClient",
             });
 
-            // Wait a second for message sending
-            await Task.Delay(1000);
+            // Wait a bit for message sending
+            await Task.Delay(10);
             Assert.Equal("HelloMsgClient", serverTestMsgHandler.stringVal);
 
             await client.DisconnectAsync();
@@ -157,17 +157,17 @@ namespace Insthync.SimpleNetworkManager.NET.Tests.Network.TcpTransport
             Assert.True(server.IsRunning);
             Assert.True(client.IsConnected);
 
-            // Wait a second for connection acceptance
-            await Task.Delay(1000);
+            // Wait a bit for connection acceptance
+            await Task.Delay(10);
             Assert.Equal(1, server.ConnectionManager.ConnectionCount);
 
-            await server.SendMessageAsync(1, new TestMessage()
+            await server.SendMessageAsync(server.ConnectionManager.GetAllConnections().First().ConnectionId, new TestMessage()
             {
                 stringVal = "HelloMsgFromServer",
             });
 
-            // Wait a second for message sending
-            await Task.Delay(1000);
+            // Wait a bit for message sending
+            await Task.Delay(10);
             Assert.Equal("HelloMsgFromServer", clientTestMsgHandler.stringVal);
 
             await client.DisconnectAsync();
@@ -192,11 +192,9 @@ namespace Insthync.SimpleNetworkManager.NET.Tests.Network.TcpTransport
                 var clientCancelSrc = new CancellationTokenSource();
                 await client.ConnectAsync("127.0.0.1", 7895, clientCancelSrc.Token);
                 // Wait a bit for connection acceptance
-                await Task.Delay(100);
                 Assert.True(client.IsConnected);
                 await client.DisconnectAsync();
                 // Wait a bit for disconnection
-                await Task.Delay(100);
                 Assert.False(client.IsConnected);
             }
 
@@ -219,24 +217,22 @@ namespace Insthync.SimpleNetworkManager.NET.Tests.Network.TcpTransport
             var client1 = new TcpNetworkClient(_loggerFactoryMock.Object);
             var clientCancelSrc = new CancellationTokenSource();
             await client1.ConnectAsync("127.0.0.1", 7896, clientCancelSrc.Token);
-            // Wait a second for connection acceptance
-            await Task.Delay(1000);
+            // Wait a bit for connection acceptance
             Assert.True(client1.IsConnected);
 
             // Client 2 - must be able to connection
             var client2 = new TcpNetworkClient(_loggerFactoryMock.Object);
             clientCancelSrc = new CancellationTokenSource();
             await client2.ConnectAsync("127.0.0.1", 7896, clientCancelSrc.Token);
-            // Wait a second for connection acceptance
-            await Task.Delay(1000);
+            // Wait a bit for connection acceptance
             Assert.True(client2.IsConnected);
 
             // Client 3 - must not be able to connection
             var client3 = new TcpNetworkClient(_loggerFactoryMock.Object);
             clientCancelSrc = new CancellationTokenSource();
             await client3.ConnectAsync("127.0.0.1", 7896, clientCancelSrc.Token);
-            // Wait a second for connection acceptance
-            await Task.Delay(1000);
+            // Wait a bit for connection acceptance
+            await Task.Delay(10);
             Assert.False(client3.IsConnected);
 
             await client1.DisconnectAsync();
