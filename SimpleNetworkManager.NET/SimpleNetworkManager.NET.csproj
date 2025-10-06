@@ -6,6 +6,13 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Insthync.SimpleNetworkManager.NET</RootNamespace>
+    <Version>1.0.0</Version>
+    <Authors>Ittipon Teerapruettikulchai</Authors>
+    <Company>Insthync</Company>
+    <Description>A simple .NET (TCP+MessagePack) network manager</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/insthync/SimpleNetworkManager.NET</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/insthync/SimpleNetworkManager.NET</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
