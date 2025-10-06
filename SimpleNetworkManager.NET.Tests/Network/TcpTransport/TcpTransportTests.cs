@@ -253,5 +253,36 @@ namespace Insthync.SimpleNetworkManager.NET.Tests.Network.TcpTransport
 
             Assert.False(server.IsRunning);
         }
+
+        [Fact]
+        public async Task TestRequestResponse()
+        {
+            var server = new TcpNetworkServer(_loggerFactoryMock.Object);
+            var serverTestMsgHandler = new TestRequestMessageHandler();
+            server.MessageRouterService.RegisterHandler(serverTestMsgHandler);
+            var serverCancelSrc = new CancellationTokenSource();
+            await server.StartAsync(7893, serverCancelSrc.Token);
+
+            var client = new TcpNetworkClient(_loggerFactoryMock.Object);
+            var clientCancelSrc = new CancellationTokenSource();
+            await client.ConnectAsync("127.0.0.1", 7893, clientCancelSrc.Token);
+
+            Assert.True(server.IsRunning);
+            Assert.True(client.IsConnected);
+
+            Assert.NotNull(client.ClientConnection);
+            var response = await client.SendRequestAsync<TestResponseMessage>(new TestRequestMessage()
+            {
+                stringVal = "Hello",
+            });
+
+            Assert.Equal("Hello_Hello", response.stringVal);
+
+            await client.DisconnectAsync();
+            await server.StopAsync();
+
+            Assert.False(server.IsRunning);
+            Assert.False(client.IsConnected);
+        }
     }
 }
