@@ -43,6 +43,30 @@ namespace Insthync.SimpleNetworkManager.NET.Tests.Network.TcpTransport
         }
 
         [Fact]
+        public async Task TestReuseClientConnection()
+        {
+            var server = new TcpNetworkServer(_loggerFactoryMock.Object);
+            var client = new TcpNetworkClient(_loggerFactoryMock.Object);
+
+            var serverCancelSrc = new CancellationTokenSource();
+            await server.StartAsync(7890, serverCancelSrc.Token);
+            Assert.True(server.IsRunning);
+
+            for (int i = 0; i < 10; ++i)
+            {
+                var clientCancelSrc = new CancellationTokenSource();
+                await client.ConnectAsync("127.0.0.1", 7890, clientCancelSrc.Token);
+                Assert.True(client.IsConnected);
+                await client.DisconnectAsync();
+                Assert.False(client.IsConnected);
+            }
+
+            await server.StopAsync();
+
+            Assert.False(server.IsRunning);
+        }
+
+        [Fact]
         public async Task TestClientDisconnectionFromServer()
         {
             var server = new TcpNetworkServer(_loggerFactoryMock.Object);
