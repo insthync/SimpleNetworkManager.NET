@@ -59,17 +59,18 @@ namespace Insthync.SimpleNetworkManager.NET.Services
         /// Routes a message to the appropriate handler
         /// </summary>
         /// <param name="clientConnection">Client connection that sent the message</param>
-        /// <param name="message">Message to route</param>
+        /// <param name="buffer">Message buffer</param>
+        /// <param name="length">Length of buffer</param>
         /// <returns>Task representing the async routing operation</returns>
         /// <exception cref="ArgumentNullException">Thrown when client or message is null</exception>
-        public async UniTask RouteMessageAsync(BaseClientConnection clientConnection, byte[] message)
+        public async UniTask RouteMessageAsync(BaseClientConnection clientConnection, byte[] buffer, int length)
         {
             if (clientConnection == null)
                 throw new ArgumentNullException(nameof(clientConnection));
-            if (message == null)
-                throw new ArgumentNullException(nameof(message));
+            if (buffer == null)
+                throw new ArgumentNullException(nameof(buffer));
 
-            var data = BaseMessage.ExtractMessageData(message, out var messageType);
+            var data = BaseMessage.ExtractMessageData(buffer, length, out var messageType);
             if (_handlers.TryGetValue(messageType, out var handler))
             {
                 var messageInstance = handler.GetMessageInstance();

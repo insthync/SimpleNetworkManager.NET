@@ -3,6 +3,7 @@ using Insthync.SimpleNetworkManager.NET.Messages;
 using Insthync.SimpleNetworkManager.NET.Messages.Error;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Buffers;
 using System.IO;
 using System.Net.Sockets;
 using System.Threading;
@@ -97,7 +98,8 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
                             _logger.LogDebug("Client {ConnectionId} disconnected during message receive", ConnectionId);
                             break; // Connection closed
                         }
-                        OnMessageReceived(message);
+                        OnMessageReceived(message.Value.buffer, message.Value.length);
+                        ArrayPool<byte>.Shared.Return(message.Value.buffer);
                     }
                     catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                     {
@@ -138,8 +140,9 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
 
         /// <summary>
         /// Receives a complete message from the network stream with timeout handling
+        /// message buffer should be returned to array pool after use
         /// </summary>
-        private async UniTask<byte[]?> ReceiveMessageAsync(CancellationToken cancellationToken)
+        private async UniTask<(byte[] buffer, int length)?> ReceiveMessageAsync(CancellationToken cancellationToken)
         {
             if (_networkStream == null || !_isConnected)
                 return null;

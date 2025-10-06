@@ -18,8 +18,12 @@ namespace Insthync.SimpleNetworkManager.NET.Tests.Messages
             // Act - Serialize using custom binary format
             var serializedData = originalMessage.Serialize();
 
+            // Find if data length is correct or not
+            int comparingLength = BitConverter.ToInt32(serializedData, 0);
+            Assert.Equal(serializedData.Length, comparingLength);
+
             // Extract message data and verify header
-            var messageData = BaseMessage.ExtractMessageData(serializedData, out uint messageType);
+            var messageData = BaseMessage.ExtractMessageData(serializedData, serializedData.Length, out uint messageType);
             Assert.Equal(originalMessage.GetMessageType(), messageType);
 
             // Deserialize the message data using MessagePack

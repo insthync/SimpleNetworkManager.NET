@@ -2,6 +2,7 @@
 using Insthync.SimpleNetworkManager.NET.Network;
 using Insthync.SimpleNetworkManager.NET.Tests.Messages;
 using MessagePack;
+using System.Buffers;
 
 namespace Insthync.SimpleNetworkManager.NET.Tests.Network
 {
@@ -20,10 +21,11 @@ namespace Insthync.SimpleNetworkManager.NET.Tests.Network
             var cancellationTokenSource = new CancellationTokenSource();
             await stream.WriteMessageAsync(originalMessage, cancellationTokenSource.Token);
             stream.Position = 0;
-            var message = await stream.ReadMessageAsync(cancellationTokenSource.Token);
-            Assert.NotNull(message);
+            var result = await stream.ReadMessageAsync(cancellationTokenSource.Token);
+            Assert.NotNull(result);
 
-            var messageData = BaseMessage.ExtractMessageData(message, out var messageType);
+            var messageData = BaseMessage.ExtractMessageData(result.Value.buffer, result.Value.length, out var messageType);
+            ArrayPool<byte>.Shared.Return(result.Value.buffer);
             Assert.Equal(originalMessage.GetMessageType(), messageType);
 
             // Deserialize the message data using MessagePack

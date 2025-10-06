@@ -62,21 +62,21 @@ namespace Insthync.SimpleNetworkManager.NET.Messages
         /// <param name="message">Binary data containing the message</param>
         /// <param name="messageType">The message type extracted from the header</param>
         /// <returns>Deserialized message data (without header)</returns>
-        public static byte[] ExtractMessageData(byte[] message, out uint messageType)
+        public static byte[] ExtractMessageData(byte[] message, int messageLength, out uint messageType)
         {
-            if (message.Length < 8)
+            if (messageLength < 8)
                 throw new ArgumentException("Data too short to contain message header");
 
             // Read total size (for validation)
             var totalSize = BitConverter.ToInt32(message, 0);
-            if (totalSize != message.Length)
+            if (totalSize != messageLength)
                 throw new ArgumentException("Message size mismatch");
 
             // Read message type
             messageType = BitConverter.ToUInt32(message, 4);
 
             // Extract message data
-            var messageData = new byte[message.Length - 8];
+            var messageData = new byte[messageLength - 8];
             Array.Copy(message, 8, messageData, 0, messageData.Length);
 
             return messageData;

@@ -1,6 +1,7 @@
 ﻿using Cysharp.Threading.Tasks;
 using Insthync.SimpleNetworkManager.NET.Messages;
 using System;
+using System.Buffers;
 using System.IO;
 using System.Threading;
 
@@ -11,134 +12,134 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         /// <summary>
         /// Reads exactly the specified number of bytes from the stream
         /// </summary>
-        public static async UniTask<int> ReadExactAsync(this Stream stream, byte[] buffer, int count, CancellationToken cancellationToken, int offset = 0)
+        public static async UniTask<int> ReadExactAsync(this Stream stream, Memory<byte> buffer, int count, CancellationToken cancellationToken)
         {
-            if (stream == null)
-                return 0;
-
             int totalBytesRead = 0;
             while (totalBytesRead < count && !cancellationToken.IsCancellationRequested)
             {
-                var bytesRead = await stream.ReadAsync(
-                    buffer, offset + totalBytesRead, count - totalBytesRead, cancellationToken);
-
+                var slice = buffer.Slice(totalBytesRead, count - totalBytesRead);
+                int bytesRead = await stream.ReadAsync(slice, cancellationToken);
                 if (bytesRead == 0)
                     break; // Connection closed
-
                 totalBytesRead += bytesRead;
             }
             return totalBytesRead;
         }
 
         /// <summary>
-        /// Read message from the stream
+        /// Read message from the stream, message buffer should be returned to array pool after use
         /// </summary>
         /// <param name="stream"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         /// <exception cref="InvalidMessageSizeException"></exception>
-        public static async UniTask<byte[]?> ReadMessageAsync(this Stream stream, CancellationToken cancellationToken)
+        public static async UniTask<(byte[] buffer, int length)?> ReadMessageAsync(this Stream stream, CancellationToken cancellationToken)
         {
             if (stream == null)
                 return null;
 
-            // Read message size (4 bytes)
-            var sizeBuffer = new byte[4];
-            var bytesRead = await stream.ReadExactAsync(sizeBuffer, 4, cancellationToken);
-            if (bytesRead == 0 || bytesRead < 4)
-                return null; // Connection closed
-
-            var dataSize = BitConverter.ToInt32(sizeBuffer, 0);
-            int minSize = 8;
-            int maxSize = 1024 * 1024; // 1 MB
-            if (dataSize < minSize || dataSize > maxSize)
+            byte[] sizeBuffer = ArrayPool<byte>.Shared.Rent(4);
+            try
             {
-                throw new InvalidMessageSizeException()
+                var sizeMemory = sizeBuffer.AsMemory(0, 4);
+                int bytesRead = await stream.ReadExactAsync(sizeMemory, 4, cancellationToken);
+                if (bytesRead < 4)
+                    return null;
+
+                int dataSize = BitConverter.ToInt32(sizeBuffer, 0);
+                int minSize = 8;
+                int maxSize = 1024 * 1024; // 1 MB limit
+                if (dataSize < minSize || dataSize > maxSize)
+                    throw new InvalidMessageSizeException() { Size = dataSize, MinSize = minSize, MaxSize = maxSize };
+
+                // Rent buffer for the full message
+                byte[] dataBuffer = ArrayPool<byte>.Shared.Rent(dataSize);
+                Memory<byte> dataMemory = dataBuffer.AsMemory(0, dataSize);
+
+                // Copy size header into data buffer
+                sizeMemory.Span.CopyTo(dataMemory.Span);
+
+                // Read the rest of the message body directly into the span
+                int remainingBytes = dataSize - 4;
+                bytesRead = await stream.ReadExactAsync(dataMemory.Slice(4, remainingBytes), remainingBytes, cancellationToken);
+                if (bytesRead != remainingBytes)
                 {
-                    Size = dataSize,
-                    MinSize = minSize,
-                    MaxSize = maxSize
-                };
+                    ArrayPool<byte>.Shared.Return(dataBuffer);
+                    return null; // Connection closed
+                }
+
+                return (dataBuffer, dataSize);
             }
-
-            // Read the complete message (including the size we already read)
-            var dataBuffer = new byte[dataSize];
-            sizeBuffer.CopyTo(dataBuffer, 0);
-
-            // Already read 4 bytes for message size, so decrease by 4
-            var remainingBytes = dataSize - 4;
-            // Read next bytes by remaining bytes, skip 4 bytes (message size which already copied above)
-            bytesRead = await stream.ReadExactAsync(dataBuffer, remainingBytes, cancellationToken, 4);
-            if (bytesRead != remainingBytes)
-                return null; // Connection closed
-
-            return dataBuffer;
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(sizeBuffer);
+            }
         }
 
         /// <summary>
         /// Reads exactly the specified number of bytes from the stream
         /// </summary>
-        public static int ReadExact(this Stream stream, byte[] buffer, int count, int offset = 0)
+        public static int ReadExact(this Stream stream, Span<byte> buffer, int count, CancellationToken cancellationToken)
         {
-            if (stream == null)
-                return 0;
-
             int totalBytesRead = 0;
-            while (totalBytesRead < count)
+            while (totalBytesRead < count && !cancellationToken.IsCancellationRequested)
             {
-                var bytesRead = stream.Read(
-                    buffer, offset + totalBytesRead, count - totalBytesRead);
-
+                int bytesRead = stream.Read(buffer.Slice(totalBytesRead, count - totalBytesRead));
                 if (bytesRead == 0)
                     break; // Connection closed
-
                 totalBytesRead += bytesRead;
             }
             return totalBytesRead;
         }
 
         /// <summary>
-        /// Read message from the stream
+        /// Read message from the stream, message buffer should be returned to array pool after use
         /// </summary>
         /// <param name="stream"></param>
+        /// <param name="cancellationToken"></param>
         /// <returns></returns>
         /// <exception cref="InvalidMessageSizeException"></exception>
-        public static byte[]? ReadMessage(this Stream stream)
+        public static (byte[] buffer, int length)? ReadMessage(this Stream stream, CancellationToken cancellationToken)
         {
             if (stream == null)
                 return null;
 
-            // Read message size (4 bytes)
-            var sizeBuffer = new byte[4];
-            var bytesRead = stream.ReadExact(sizeBuffer, 4);
-            if (bytesRead == 0 || bytesRead < 4)
-                return null; // Connection closed
-
-            var dataSize = BitConverter.ToInt32(sizeBuffer, 0);
-            int minSize = 8;
-            int maxSize = 1024 * 1024; // 1 MB
-            if (dataSize < minSize || dataSize > maxSize)
+            byte[] sizeBuffer = ArrayPool<byte>.Shared.Rent(4);
+            try
             {
-                throw new InvalidMessageSizeException()
+                Span<byte> sizeSpan = sizeBuffer.AsSpan(0, 4);
+                int bytesRead = stream.ReadExact(sizeSpan, 4, cancellationToken);
+                if (bytesRead < 4)
+                    return null; // Connection closed
+
+                int dataSize = BitConverter.ToInt32(sizeBuffer, 0);
+                const int minSize = 8;
+                const int maxSize = 1024 * 1024; // 1 MB limit
+                if (dataSize < minSize || dataSize > maxSize)
+                    throw new InvalidMessageSizeException() { Size = dataSize, MinSize = minSize, MaxSize = maxSize };
+
+                // Rent buffer for the full message
+                byte[] dataBuffer = ArrayPool<byte>.Shared.Rent(dataSize);
+                Span<byte> dataSpan = dataBuffer.AsSpan(0, dataSize);
+
+                // Copy size header into data buffer
+                sizeSpan.CopyTo(dataSpan);
+
+                // Read the rest of the message body directly into the span
+                int remainingBytes = dataSize - 4;
+                bytesRead = stream.ReadExact(dataSpan.Slice(4, remainingBytes), remainingBytes, cancellationToken);
+                if (bytesRead != remainingBytes)
                 {
-                    Size = dataSize,
-                    MinSize = minSize,
-                    MaxSize = maxSize
-                };
+                    ArrayPool<byte>.Shared.Return(dataBuffer);
+                    return null; // Connection closed
+                }
+
+                return (dataBuffer, dataSize);
             }
-
-            // Read the complete message (including the size we already read)
-            var dataBuffer = new byte[dataSize];
-            sizeBuffer.CopyTo(dataBuffer, 0);
-
-            // Already read 4 bytes for message size, so decrease by 4
-            var remainingBytes = dataSize - 4;
-            // Read next bytes by remaining bytes, skip 4 bytes (message size which already copied above)
-            bytesRead = stream.ReadExact(dataBuffer, remainingBytes, 4);
-            if (bytesRead != remainingBytes)
-                return null; // Connection closed
-
-            return dataBuffer;
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(sizeBuffer);
+            }
         }
 
         public static async UniTask WriteMessageAsync<T>(this Stream stream, T message, CancellationToken cancellationToken)

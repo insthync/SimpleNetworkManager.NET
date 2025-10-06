@@ -65,9 +65,9 @@ namespace Insthync.SimpleNetworkManager.NET.Network
             ConnectionId = 0;
         }
 
-        public void OnMessageReceived(byte[] message)
+        public void OnMessageReceived(byte[] buffer, int length)
         {
-            MessageReceived?.Invoke(this, message);
+            MessageReceived?.Invoke(this, buffer, length);
         }
 
         public void OnDisconnected()

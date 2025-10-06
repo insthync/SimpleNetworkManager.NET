@@ -94,15 +94,16 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         /// Event handler for messages received from clients
         /// </summary>
         /// <param name="clientConnection">The client connection that sent the message</param>
-        /// <param name="message">Received message</param>
-        protected virtual async void OnClientMessageReceived(BaseClientConnection clientConnection, byte[] message)
+        /// <param name="buffer">Message buffer</param>
+        /// <param name="length">Length of buffer</param>
+        protected virtual async void OnClientMessageReceived(BaseClientConnection clientConnection, byte[] buffer, int length)
         {
             try
             {
                 _logger.LogDebug("Received message from server");
 
                 // Route the message to the appropriate handler
-                await _messageRouterService.RouteMessageAsync(clientConnection, message);
+                await _messageRouterService.RouteMessageAsync(clientConnection, buffer, length);
             }
             catch (Exception ex)
             {
