@@ -11,8 +11,8 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
 {
     public class TcpNetworkServer : BaseNetworkServer
     {
-        private TcpListener? _tcpListener;
         private CancellationTokenSource? _cancellationTokenSource;
+        private TcpListener? _tcpListener;
         private UniTask? _acceptConnectionsTask;
         private bool _isRunning;
         private int _runningPort;

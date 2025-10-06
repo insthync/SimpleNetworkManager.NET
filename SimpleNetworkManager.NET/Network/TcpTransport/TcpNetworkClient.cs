@@ -7,9 +7,8 @@ using System.Threading.Tasks;
 
 namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
 {
-    public class TcpNetworkClient : BaseNetworkClient, IDisposable
+    public class TcpNetworkClient : BaseNetworkClient
     {
-        private bool _disposed;
         private CancellationTokenSource? _cancellationTokenSource;
         private TcpClient? _tcpClient;
         private TcpClientConnection? _clientConnection;
@@ -75,16 +74,6 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
                 // Brief delay before retrying
                 await Task.Delay(1000, cancellationToken);
             }
-        }
-
-        public void Dispose()
-        {
-            if (_disposed)
-                return;
-
-            _disposed = true;
-
-            _clientConnection?.Dispose();
         }
     }
 }

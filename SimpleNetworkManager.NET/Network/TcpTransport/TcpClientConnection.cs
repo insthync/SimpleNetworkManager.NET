@@ -389,7 +389,6 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
             _sendSemaphore?.Dispose();
             _networkStream?.Dispose();
             _tcpClient?.Dispose();
-            _cancellationTokenSource?.Dispose();
 
             _logger.LogDebug("TcpClientConnection {ConnectionId} disposed", ConnectionId);
         }
