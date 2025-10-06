@@ -7,7 +7,7 @@ namespace Insthync.SimpleNetworkManager.NET.Messages
     /// Base class for all request messages that expect a response.
     /// Provides correlation ID for matching requests with responses.
     /// Reserved keys:
-    /// 0 - RequestId (Guid)
+    /// 0 - RequestId (uint)
     /// </summary>
     public abstract class BaseRequestMessage : BaseMessage
     {
@@ -16,6 +16,6 @@ namespace Insthync.SimpleNetworkManager.NET.Messages
         /// Generated automatically when the request is created.
         /// </summary>
         [Key(0)]
-        public Guid RequestId { get; internal set; }
+        public uint RequestId { get; set; }
     }
 }

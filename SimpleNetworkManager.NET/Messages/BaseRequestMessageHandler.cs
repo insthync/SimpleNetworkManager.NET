@@ -19,10 +19,10 @@ namespace Insthync.SimpleNetworkManager.NET.Messages
 
         protected override sealed async UniTask HandleAsync(BaseClientConnection clientConnection, TRequest data)
         {
-            Guid requestId = data.RequestId;
+            uint requestId = data.RequestId;
             var response = await HandleRequestAsync(clientConnection, data);
             response.RequestId = requestId;
-            await clientConnection.SendMessageAsync(data);
+            await clientConnection.SendMessageAsync(response);
         }
 
         protected abstract UniTask<TResponse> HandleRequestAsync(BaseClientConnection clientConnection, TRequest request);

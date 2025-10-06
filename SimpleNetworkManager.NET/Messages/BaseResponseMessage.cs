@@ -7,7 +7,7 @@ namespace Insthync.SimpleNetworkManager.NET.Messages
     /// Base class for all response messages that correspond to a request.
     /// Provides correlation ID for matching responses with requests.
     /// Reserved keys:
-    /// 0 - RequestId (Guid)
+    /// 0 - RequestId (uint)
     /// 1 - Success (bool)
     /// 2 - ErrorMessage (string)
     /// </summary>
@@ -17,7 +17,7 @@ namespace Insthync.SimpleNetworkManager.NET.Messages
         /// Correlation ID that matches the original request's RequestId
         /// </summary>
         [Key(0)]
-        public Guid RequestId { get; internal set; }
+        public uint RequestId { get; set; }
 
         /// <summary>
         /// Indicates if the request was successful

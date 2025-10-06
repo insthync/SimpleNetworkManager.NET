@@ -15,8 +15,11 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         private static uint s_connectionIdCounter = 0;
         private static ConcurrentQueue<uint> s_unassignedConnectionIds = new ConcurrentQueue<uint>();
 
+        private static uint s_requestIdCounter = 0;
+        private static ConcurrentQueue<uint> s_unassignedRequestIds = new ConcurrentQueue<uint>();
+
         protected readonly ILogger<BaseClientConnection> _logger;
-        protected readonly ConcurrentDictionary<Guid, BaseResponseMessage> _pendingResponses = new ConcurrentDictionary<Guid, BaseResponseMessage>();
+        protected readonly ConcurrentDictionary<uint, BaseResponseMessage> _pendingResponses;
         protected bool _disposed;
 
         public uint ConnectionId { get; protected set; }
@@ -31,21 +34,35 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         public BaseClientConnection(ILogger<BaseClientConnection> logger)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _pendingResponses = new ConcurrentDictionary<uint, BaseResponseMessage>();
+        }
+
+        private static uint GetNewConnectionId()
+        {
+            if (!s_unassignedConnectionIds.TryDequeue(out uint connectionId))
+                connectionId = Interlocked.Increment(ref s_connectionIdCounter);
+            return connectionId;
+        }
+
+        private static uint GetNewRequestId()
+        {
+            if (!s_unassignedRequestIds.TryDequeue(out uint requestId))
+                requestId = Interlocked.Increment(ref s_requestIdCounter);
+            return requestId;
         }
 
         public void AssignConnectionId()
         {
             if (ConnectionId > 0)
                 return;
-            if (!s_unassignedConnectionIds.TryDequeue(out uint connectionId))
-                connectionId = Interlocked.Increment(ref s_connectionIdCounter);
-            ConnectionId = connectionId;
+            ConnectionId = GetNewConnectionId();
         }
 
         public void UnassignConnectionId()
         {
             if (ConnectionId > 0)
                 s_unassignedConnectionIds.Enqueue(ConnectionId);
+            ConnectionId = 0;
         }
 
         public void OnMessageReceived(byte[] message)
@@ -76,7 +93,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         internal async UniTask<TResponse> SendRequestAsync<TResponse>(BaseRequestMessage request)
             where TResponse : BaseResponseMessage
         {
-            Guid requestId = Guid.NewGuid();
+            uint requestId = GetNewRequestId();
             request.RequestId = requestId;
             await SendMessageAsync(request);
 
@@ -95,6 +112,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
                 timeoutCountDown -= 100;
             }
             while (!_pendingResponses.TryRemove(requestId, out response));
+            s_unassignedRequestIds.Enqueue(requestId);
 
             if (response == null)
             {
@@ -113,7 +131,8 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         {
             if (response == null)
                 return;
-            _pendingResponses.TryAdd(response.RequestId, response);
+            uint requestId = response.RequestId;
+            _pendingResponses.TryAdd(requestId, response);
         }
 
         /// <summary>
