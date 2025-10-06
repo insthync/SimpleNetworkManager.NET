@@ -39,7 +39,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
             ClientConnection.Dispose();
         }
 
-        public async UniTask<TResponse?> SendRequestAsync<TResponse>(BaseRequestMessage request)
+        public async UniTask<TResponse> SendRequestAsync<TResponse>(BaseRequestMessage request)
             where TResponse : BaseResponseMessage
         {
             if (ClientConnection == null || !ClientConnection.IsConnected)

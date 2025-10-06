@@ -50,7 +50,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
             await clientConnection.DisconnectAsync();
         }
 
-        public async UniTask<TResponse?> SendRequestAsync<TResponse>(uint connectionId, BaseRequestMessage request)
+        public async UniTask<TResponse> SendRequestAsync<TResponse>(uint connectionId, BaseRequestMessage request)
             where TResponse : BaseResponseMessage
         {
             if (!_connectionManager.TryGetConnection(connectionId, out var clientConnection))
