@@ -90,7 +90,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         /// </summary>
         internal abstract UniTask DisconnectAsync();
 
-        internal async UniTask<TResponse> SendRequestAsync<TResponse>(BaseRequestMessage request)
+        internal async UniTask<TResponse> SendRequestAsync<TResponse>(BaseRequestMessage request, int timeoutMs = 10_000)
             where TResponse : BaseResponseMessage
         {
             uint requestId = GetNewRequestId();
@@ -99,24 +99,22 @@ namespace Insthync.SimpleNetworkManager.NET.Network
 
             // Waiting for the response
             BaseResponseMessage? response;
-            // 10 seconds timeout
-            int timeoutCountDown = 10_000;
             do
             {
-                if (timeoutCountDown <= 0)
+                if (timeoutMs <= 0)
                 {
                     response = null;
                     break;
                 }
                 await Task.Delay(100);
-                timeoutCountDown -= 100;
+                timeoutMs -= 100;
             }
             while (!_pendingResponses.TryRemove(requestId, out response));
             s_unassignedRequestIds.Enqueue(requestId);
 
             if (response == null)
             {
-                throw new TimeoutException($"Request timed out after 10 seconds (RequestId: {requestId}).");
+                throw new TimeoutException($"Request timed out after {timeoutMs} milliseconds (RequestId: {requestId}).");
             }
 
             if (response is not TResponse castedResponse)

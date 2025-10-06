@@ -39,13 +39,13 @@ namespace Insthync.SimpleNetworkManager.NET.Network
             ClientConnection.Dispose();
         }
 
-        public async UniTask<TResponse> SendRequestAsync<TResponse>(BaseRequestMessage request)
+        public async UniTask<TResponse> SendRequestAsync<TResponse>(BaseRequestMessage request, int timeoutMs = 10_000)
             where TResponse : BaseResponseMessage
         {
             if (ClientConnection == null || !ClientConnection.IsConnected)
                 throw new InvalidOperationException("Cannot send request: client is not connected.");
             _messageRouterService.RegisterHandler(new ResponseMessageHandler<TResponse>(), true);
-            return await ClientConnection.SendRequestAsync<TResponse>(request);
+            return await ClientConnection.SendRequestAsync<TResponse>(request, timeoutMs);
         }
 
         public void RegisterHandler<T>(BaseMessageHandler<T> handler)

@@ -50,7 +50,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
             await clientConnection.DisconnectAsync();
         }
 
-        public async UniTask<TResponse> SendRequestAsync<TResponse>(uint connectionId, BaseRequestMessage request)
+        public async UniTask<TResponse> SendRequestAsync<TResponse>(uint connectionId, BaseRequestMessage request, int timeoutMs = 10_000)
             where TResponse : BaseResponseMessage
         {
             if (!_connectionManager.TryGetConnection(connectionId, out var clientConnection))
@@ -58,7 +58,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
             if (clientConnection == null || !clientConnection.IsConnected)
                 throw new InvalidOperationException($"Cannot send request: client {connectionId} is not connected.");
             _messageRouterService.RegisterHandler(new ResponseMessageHandler<TResponse>(), true);
-            return await clientConnection.SendRequestAsync<TResponse>(request);
+            return await clientConnection.SendRequestAsync<TResponse>(request, timeoutMs);
         }
 
         public void RegisterHandler<T>(BaseMessageHandler<T> handler)
