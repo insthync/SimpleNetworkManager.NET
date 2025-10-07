@@ -23,6 +23,11 @@ namespace Insthync.SimpleNetworkManager.NET.Services
             _handlers = new ConcurrentDictionary<uint, IMessageHandler>();
         }
 
+        public bool ContainsHandler(uint key)
+        {
+            return _handlers.ContainsKey(key);
+        }
+
         /// <summary>
         /// Registers a message handler for a specific message type
         /// </summary>

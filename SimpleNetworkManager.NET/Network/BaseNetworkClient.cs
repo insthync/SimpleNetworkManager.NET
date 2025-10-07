@@ -44,7 +44,9 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         {
             if (ClientConnection == null || !ClientConnection.IsConnected)
                 throw new InvalidOperationException("Cannot send request: client is not connected.");
-            _messageRouterService.RegisterHandler(new ResponseMessageHandler<TResponse>(), true);
+            var responseInstance = BaseMessage.GetDefaultInstance(typeof(TResponse));
+            if (!_messageRouterService.ContainsHandler(responseInstance.GetMessageType()))
+                _messageRouterService.RegisterHandler(new ResponseMessageHandler<TResponse>(), true);
             return await ClientConnection.SendRequestAsync<TResponse>(request, timeoutMs);
         }
 

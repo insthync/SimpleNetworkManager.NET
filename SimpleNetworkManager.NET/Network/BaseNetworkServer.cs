@@ -57,7 +57,9 @@ namespace Insthync.SimpleNetworkManager.NET.Network
                 throw new KeyNotFoundException($"No connection found with ID {connectionId}.");
             if (clientConnection == null || !clientConnection.IsConnected)
                 throw new InvalidOperationException($"Cannot send request: client {connectionId} is not connected.");
-            _messageRouterService.RegisterHandler(new ResponseMessageHandler<TResponse>(), true);
+            var responseInstance = BaseMessage.GetDefaultInstance(typeof(TResponse));
+            if (!_messageRouterService.ContainsHandler(responseInstance.GetMessageType()))
+                _messageRouterService.RegisterHandler(new ResponseMessageHandler<TResponse>(), true);
             return await clientConnection.SendRequestAsync<TResponse>(request, timeoutMs);
         }
 

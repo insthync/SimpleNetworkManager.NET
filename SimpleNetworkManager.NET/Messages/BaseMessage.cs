@@ -1,10 +1,28 @@
 ﻿using MessagePack;
 using System;
+using System.Collections.Generic;
 
 namespace Insthync.SimpleNetworkManager.NET.Messages
 {
     public abstract class BaseMessage
     {
+        private static Dictionary<Type, BaseMessage> s_defaultInstances = new Dictionary<Type, BaseMessage>();
+        public static BaseMessage GetDefaultInstance(Type type)
+        {
+            if (!typeof(BaseMessage).IsAssignableFrom(type))
+            {
+                throw new InvalidOperationException($"{type} is not a BaseMessage or subclass of it");
+            }
+            if (!s_defaultInstances.TryGetValue(type, out BaseMessage? result))
+            {
+                result = (BaseMessage?)Activator.CreateInstance(type);
+                if (result == null)
+                    return null!;
+                s_defaultInstances[type] = result;
+            }
+            return result;
+        }
+
         /// <summary>
         /// Unique identifier for the message type, used for routing messages to appropriate handlers.
         /// This is handled separately in the message header, not in MessagePack serialization.

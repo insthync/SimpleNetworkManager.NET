@@ -7,13 +7,9 @@ namespace Insthync.SimpleNetworkManager.NET.Messages
     public abstract class BaseMessageHandler<T> : IMessageHandler
         where T : BaseMessage
     {
-        private static T? s_messageInstance;
-
-        public virtual BaseMessage GetMessageInstance()
+        public BaseMessage GetMessageInstance()
         {
-            if (s_messageInstance == null)
-                s_messageInstance = Activator.CreateInstance<T>();
-            return s_messageInstance;
+            return BaseMessage.GetDefaultInstance(typeof(T));
         }
 
         public UniTask HandleDataAsync(BaseClientConnection clientConnection, object? data)
