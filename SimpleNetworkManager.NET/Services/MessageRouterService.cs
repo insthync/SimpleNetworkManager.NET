@@ -33,6 +33,7 @@ namespace Insthync.SimpleNetworkManager.NET.Services
         /// </summary>
         /// <typeparam name="T">Type of message the handler processes</typeparam>
         /// <param name="handler">Handler instance to register</param>
+        /// <param name="dismissWarning">Dismiss warning message writing or not?</param>
         /// <exception cref="ArgumentNullException">Thrown when handler is null</exception>
         public void RegisterHandler<T>(BaseMessageHandler<T> handler, bool dismissWarning = false)
             where T : BaseMessage
