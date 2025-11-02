@@ -1,9 +1,9 @@
-﻿using Cysharp.Threading.Tasks;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Insthync.SimpleNetworkManager.NET.Network
 {
@@ -119,7 +119,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         /// Disconnects all active client connections gracefully
         /// </summary>
         /// <returns>Task representing the async operation</returns>
-        public async UniTask DisconnectAllClientsAsync()
+        public async Task DisconnectAllClientsAsync()
         {
             var connections = GetAllConnections().ToList();
 
@@ -144,7 +144,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
             });
 
             // Wait for all disconnections to complete
-            await UniTask.WhenAll(disconnectionTasks);
+            await Task.WhenAll(disconnectionTasks);
 
             _logger.LogInformation("Client disconnection process completed");
         }

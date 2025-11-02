@@ -1,11 +1,11 @@
-﻿using Cysharp.Threading.Tasks;
-using Insthync.SimpleNetworkManager.NET.Network;
+﻿using Insthync.SimpleNetworkManager.NET.Network;
+using System.Threading.Tasks;
 
 namespace Insthync.SimpleNetworkManager.NET.Messages
 {
     public interface IMessageHandler
     {
         BaseMessage GetMessageInstance();
-        public UniTask HandleDataAsync(BaseClientConnection clientConnection, object? data);
+        public Task HandleDataAsync(BaseClientConnection clientConnection, object? data);
     }
 }

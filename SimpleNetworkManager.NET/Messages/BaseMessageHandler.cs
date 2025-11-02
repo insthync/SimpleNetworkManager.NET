@@ -1,6 +1,6 @@
-﻿using Cysharp.Threading.Tasks;
-using Insthync.SimpleNetworkManager.NET.Network;
+﻿using Insthync.SimpleNetworkManager.NET.Network;
 using System;
+using System.Threading.Tasks;
 
 namespace Insthync.SimpleNetworkManager.NET.Messages
 {
@@ -12,13 +12,13 @@ namespace Insthync.SimpleNetworkManager.NET.Messages
             return BaseMessage.GetDefaultInstance(typeof(T));
         }
 
-        public UniTask HandleDataAsync(BaseClientConnection clientConnection, object? data)
+        public Task HandleDataAsync(BaseClientConnection clientConnection, object? data)
         {
             if (data == null)
                 throw new ArgumentNullException(nameof(data));
             return HandleAsync(clientConnection, (T)data);
         }
 
-        protected abstract UniTask HandleAsync(BaseClientConnection clientConnection, T data);
+        protected abstract Task HandleAsync(BaseClientConnection clientConnection, T data);
     }
 }

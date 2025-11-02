@@ -1,16 +1,15 @@
-﻿using Cysharp.Threading.Tasks;
-using Insthync.SimpleNetworkManager.NET.Network;
-using System;
+﻿using Insthync.SimpleNetworkManager.NET.Network;
+using System.Threading.Tasks;
 
 namespace Insthync.SimpleNetworkManager.NET.Messages
 {
     public class ResponseMessageHandler<T> : BaseMessageHandler<T>
         where T : BaseResponseMessage
     {
-        protected override UniTask HandleAsync(BaseClientConnection clientConnection, T data)
+        protected override Task HandleAsync(BaseClientConnection clientConnection, T data)
         {
             clientConnection.Responded(data);
-            return default;
+            return Task.CompletedTask;
         }
     }
 }

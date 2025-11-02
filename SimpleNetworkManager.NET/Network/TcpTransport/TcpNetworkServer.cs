@@ -1,5 +1,4 @@
-﻿using Cysharp.Threading.Tasks;
-using Insthync.SimpleNetworkManager.NET.Messages.Error;
+﻿using Insthync.SimpleNetworkManager.NET.Messages.Error;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Net;
@@ -13,7 +12,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
     {
         private CancellationTokenSource? _cancellationTokenSource;
         private TcpListener? _tcpListener;
-        private UniTask? _acceptConnectionsTask;
+        private Task? _acceptConnectionsTask;
         private bool _isRunning;
         private int _runningPort;
 
@@ -23,7 +22,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
         {
         }
 
-        public override async UniTask StartAsync(int port, CancellationToken cancellationToken)
+        public override async Task StartAsync(int port, CancellationToken cancellationToken)
         {
             if (_isRunning)
             {
@@ -63,7 +62,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
         /// Stops the TCP server gracefully
         /// </summary>
         /// <returns>Task representing the async stop operation</returns>
-        public override async UniTask StopAsync()
+        public override async Task StopAsync()
         {
             if (!_isRunning)
             {
@@ -86,7 +85,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
                 {
                     try
                     {
-                        await _acceptConnectionsTask.Value;
+                        await _acceptConnectionsTask;
                     }
                     catch (OperationCanceledException)
                     {
@@ -121,7 +120,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
         /// </summary>
         /// <param name="cancellationToken">Cancellation token to stop accepting connections</param>
         /// <returns>Task representing the async operation</returns>
-        private async UniTask AcceptConnectionsAsync(CancellationToken cancellationToken)
+        private async Task AcceptConnectionsAsync(CancellationToken cancellationToken)
         {
             _logger.LogDebug("Started accepting connections");
 
@@ -141,7 +140,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
                             MaxConnections);
 
                         // Reject the connection
-                        tcpClientConnection.RejectConnectionAsync(ConnectionErrorTypes.CapacityRejection, "Server is at maximum capacity", false, 0).Forget();
+                        _ = tcpClientConnection.RejectConnectionAsync(ConnectionErrorTypes.CapacityRejection, "Server is at maximum capacity", false, 0);
                         continue;
                     }
 
@@ -149,7 +148,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
                     AddConnection(tcpClientConnection);
 
                     // Handle the new connection asynchronously
-                    tcpClientConnection.HandleConnectionAsync(cancellationToken).Forget();
+                    _ = tcpClientConnection.HandleConnectionAsync(cancellationToken);
 
                     _logger.LogInformation("Client connected: ConnectionId={ConnectionId}, RemoteEndPoint={RemoteEndPoint}, TotalConnections={TotalConnections}",
                         tcpClientConnection.ConnectionId,

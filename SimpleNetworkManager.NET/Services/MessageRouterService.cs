@@ -1,10 +1,10 @@
-﻿using Cysharp.Threading.Tasks;
-using Insthync.SimpleNetworkManager.NET.Messages;
+﻿using Insthync.SimpleNetworkManager.NET.Messages;
 using Insthync.SimpleNetworkManager.NET.Network;
 using MessagePack;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
+using System.Threading.Tasks;
 
 namespace Insthync.SimpleNetworkManager.NET.Services
 {
@@ -69,7 +69,7 @@ namespace Insthync.SimpleNetworkManager.NET.Services
         /// <param name="length">Length of buffer</param>
         /// <returns>Task representing the async routing operation</returns>
         /// <exception cref="ArgumentNullException">Thrown when client or message is null</exception>
-        public async UniTask RouteMessageAsync(BaseClientConnection clientConnection, byte[] buffer, int length)
+        public async Task RouteMessageAsync(BaseClientConnection clientConnection, byte[] buffer, int length)
         {
             if (clientConnection == null)
                 throw new ArgumentNullException(nameof(clientConnection));

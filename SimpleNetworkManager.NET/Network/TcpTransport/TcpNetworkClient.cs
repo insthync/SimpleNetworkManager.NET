@@ -1,5 +1,4 @@
-﻿using Cysharp.Threading.Tasks;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using System;
 using System.Net.Sockets;
 using System.Threading;
@@ -19,7 +18,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
         {
         }
 
-        public override async UniTask ConnectAsync(string hostname, int port, CancellationToken cancellationToken)
+        public override async Task ConnectAsync(string hostname, int port, CancellationToken cancellationToken)
         {
             if (_clientConnection?.IsConnected ?? false)
             {
@@ -43,7 +42,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
                 SetupConnection();
 
                 // Handle the connection asynchronously
-                _clientConnection.HandleConnectionAsync(_cancellationTokenSource.Token).Forget();
+                _ = _clientConnection.HandleConnectionAsync(_cancellationTokenSource.Token);
 
                 _logger.LogInformation("Client connected: RemoteEndPoint={RemoteEndPoint}",
                     _clientConnection.TcpClient.Client.RemoteEndPoint);

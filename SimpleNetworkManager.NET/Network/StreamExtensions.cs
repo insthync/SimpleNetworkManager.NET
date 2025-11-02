@@ -1,9 +1,9 @@
-﻿using Cysharp.Threading.Tasks;
-using Insthync.SimpleNetworkManager.NET.Messages;
+﻿using Insthync.SimpleNetworkManager.NET.Messages;
 using System;
 using System.Buffers;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Insthync.SimpleNetworkManager.NET.Network
 {
@@ -12,7 +12,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         /// <summary>
         /// Reads exactly the specified number of bytes from the stream
         /// </summary>
-        public static async UniTask<int> ReadExactAsync(this Stream stream, Memory<byte> buffer, int count, CancellationToken cancellationToken)
+        public static async Task<int> ReadExactAsync(this Stream stream, Memory<byte> buffer, int count, CancellationToken cancellationToken)
         {
             int totalBytesRead = 0;
             while (totalBytesRead < count && !cancellationToken.IsCancellationRequested)
@@ -33,7 +33,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
         /// <exception cref="InvalidMessageSizeException"></exception>
-        public static async UniTask<(byte[] buffer, int length)?> ReadMessageAsync(this Stream stream, CancellationToken cancellationToken)
+        public static async Task<(byte[] buffer, int length)?> ReadMessageAsync(this Stream stream, CancellationToken cancellationToken)
         {
             if (stream == null)
                 return null;
@@ -142,7 +142,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
             }
         }
 
-        public static async UniTask WriteMessageAsync<T>(this Stream stream, T message, CancellationToken cancellationToken)
+        public static async Task WriteMessageAsync<T>(this Stream stream, T message, CancellationToken cancellationToken)
             where T : BaseMessage
         {
             if (stream == null)

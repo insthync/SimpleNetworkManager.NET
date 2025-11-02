@@ -1,9 +1,9 @@
-﻿using Cysharp.Threading.Tasks;
-using Insthync.SimpleNetworkManager.NET.Messages;
+﻿using Insthync.SimpleNetworkManager.NET.Messages;
 using Insthync.SimpleNetworkManager.NET.Services;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Insthync.SimpleNetworkManager.NET.Network
 {
@@ -24,14 +24,14 @@ namespace Insthync.SimpleNetworkManager.NET.Network
             _messageRouterService = new MessageRouterService(_loggerFactory.CreateLogger<MessageRouterService>());
         }
 
-        public async UniTask SendMessageAsync(BaseMessage message)
+        public async Task SendMessageAsync(BaseMessage message)
         {
             if (ClientConnection == null || !ClientConnection.IsConnected)
                 throw new InvalidOperationException("Cannot send message: client is not connected.");
             await ClientConnection.SendMessageAsync(message);
         }
 
-        public async UniTask DisconnectAsync()
+        public async Task DisconnectAsync()
         {
             if (ClientConnection == null || !ClientConnection.IsConnected)
                 throw new InvalidOperationException("Cannot disconnect: client is not connected.");
@@ -39,7 +39,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
             ClientConnection.Dispose();
         }
 
-        public async UniTask<TResponse> SendRequestAsync<TResponse>(BaseRequestMessage request, int timeoutMs = 10_000)
+        public async Task<TResponse> SendRequestAsync<TResponse>(BaseRequestMessage request, int timeoutMs = 10_000)
             where TResponse : BaseResponseMessage
         {
             if (ClientConnection == null || !ClientConnection.IsConnected)
@@ -113,6 +113,6 @@ namespace Insthync.SimpleNetworkManager.NET.Network
             }
         }
 
-        public abstract UniTask ConnectAsync(string hostname, int port, CancellationToken cancellationToken);
+        public abstract Task ConnectAsync(string hostname, int port, CancellationToken cancellationToken);
     }
 }

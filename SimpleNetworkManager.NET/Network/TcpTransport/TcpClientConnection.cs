@@ -1,5 +1,4 @@
-﻿using Cysharp.Threading.Tasks;
-using Insthync.SimpleNetworkManager.NET.Messages;
+﻿using Insthync.SimpleNetworkManager.NET.Messages;
 using Insthync.SimpleNetworkManager.NET.Messages.Error;
 using Microsoft.Extensions.Logging;
 using System;
@@ -7,6 +6,7 @@ using System.Buffers;
 using System.IO;
 using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
 {
@@ -83,7 +83,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
             }
         }
 
-        public async UniTask HandleConnectionAsync(CancellationToken cancellationToken)
+        public async Task HandleConnectionAsync(CancellationToken cancellationToken)
         {
             try
             {
@@ -141,7 +141,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
         /// Receives a complete message from the network stream with timeout handling
         /// message buffer should be returned to array pool after use
         /// </summary>
-        private async UniTask<(byte[] buffer, int length)?> ReceiveMessageAsync(CancellationToken cancellationToken)
+        private async Task<(byte[] buffer, int length)?> ReceiveMessageAsync(CancellationToken cancellationToken)
         {
             if (_networkStream == null || !_isConnected)
                 return null;
@@ -218,7 +218,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
             }
         }
 
-        internal override async UniTask SendMessageAsync(BaseMessage message)
+        internal override async Task SendMessageAsync(BaseMessage message)
         {
             if (_disposed || !_isConnected || _networkStream == null)
             {
@@ -311,10 +311,10 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
             }
         }
 
-        internal override UniTask DisconnectAsync()
+        internal override Task DisconnectAsync()
         {
             if (_disposed || !_isConnected)
-                return UniTask.CompletedTask;
+                return Task.CompletedTask;
 
             _logger.LogInformation("Disconnecting client {ConnectionId}", ConnectionId);
 
@@ -333,10 +333,10 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
 
             // Raise disconnected event
             OnDisconnected();
-            return UniTask.CompletedTask;
+            return Task.CompletedTask;
         }
 
-        public override async UniTask RejectConnectionAsync(ConnectionErrorTypes errorType, string errorText, bool shouldRetry, int retryDelayMs)
+        public override async Task RejectConnectionAsync(ConnectionErrorTypes errorType, string errorText, bool shouldRetry, int retryDelayMs)
         {
             try
             {

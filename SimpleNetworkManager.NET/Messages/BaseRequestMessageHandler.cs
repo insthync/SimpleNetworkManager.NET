@@ -1,6 +1,6 @@
-﻿using Cysharp.Threading.Tasks;
-using Insthync.SimpleNetworkManager.NET.Network;
+﻿using Insthync.SimpleNetworkManager.NET.Network;
 using System;
+using System.Threading.Tasks;
 
 namespace Insthync.SimpleNetworkManager.NET.Messages
 {
@@ -17,7 +17,7 @@ namespace Insthync.SimpleNetworkManager.NET.Messages
             return s_responseMessageInstance;
         }
 
-        protected override sealed async UniTask HandleAsync(BaseClientConnection clientConnection, TRequest data)
+        protected override sealed async Task HandleAsync(BaseClientConnection clientConnection, TRequest data)
         {
             uint requestId = data.RequestId;
             var response = await HandleRequestAsync(clientConnection, data);
@@ -25,6 +25,6 @@ namespace Insthync.SimpleNetworkManager.NET.Messages
             await clientConnection.SendMessageAsync(response);
         }
 
-        protected abstract UniTask<TResponse> HandleRequestAsync(BaseClientConnection clientConnection, TRequest request);
+        protected abstract Task<TResponse> HandleRequestAsync(BaseClientConnection clientConnection, TRequest request);
     }
 }

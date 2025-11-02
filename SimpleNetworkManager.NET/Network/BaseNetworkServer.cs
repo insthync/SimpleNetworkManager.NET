@@ -1,10 +1,10 @@
-﻿using Cysharp.Threading.Tasks;
-using Insthync.SimpleNetworkManager.NET.Messages;
+﻿using Insthync.SimpleNetworkManager.NET.Messages;
 using Insthync.SimpleNetworkManager.NET.Services;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Insthync.SimpleNetworkManager.NET.Network
 {
@@ -32,7 +32,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
             _messageRouterService = new MessageRouterService(_loggerFactory.CreateLogger<MessageRouterService>());
         }
 
-        public async UniTask SendMessageAsync(uint connectionId, BaseMessage message)
+        public async Task SendMessageAsync(uint connectionId, BaseMessage message)
         {
             if (!_connectionManager.TryGetConnection(connectionId, out var clientConnection))
                 throw new KeyNotFoundException($"No connection found with ID {connectionId}.");
@@ -41,7 +41,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
             await clientConnection.SendMessageAsync(message);
         }
 
-        public async UniTask DisconnectAsync(uint connectionId)
+        public async Task DisconnectAsync(uint connectionId)
         {
             if (!_connectionManager.TryGetConnection(connectionId, out var clientConnection))
                 throw new KeyNotFoundException($"No connection found with ID {connectionId}.");
@@ -50,7 +50,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
             await clientConnection.DisconnectAsync();
         }
 
-        public async UniTask<TResponse> SendRequestAsync<TResponse>(uint connectionId, BaseRequestMessage request, int timeoutMs = 10_000)
+        public async Task<TResponse> SendRequestAsync<TResponse>(uint connectionId, BaseRequestMessage request, int timeoutMs = 10_000)
             where TResponse : BaseResponseMessage
         {
             if (!_connectionManager.TryGetConnection(connectionId, out var clientConnection))
@@ -139,12 +139,12 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         /// <param name="port">Port to listen on</param>
         /// <param name="cancellationToken">Cancellation token for graceful shutdown</param>
         /// <returns>Task representing the async start operation</returns>
-        public abstract UniTask StartAsync(int port, CancellationToken cancellationToken);
+        public abstract Task StartAsync(int port, CancellationToken cancellationToken);
 
         /// <summary>
         /// Stops the server gracefully
         /// </summary>
         /// <returns>Task representing the async stop operation</returns>
-        public abstract UniTask StopAsync();
+        public abstract Task StopAsync();
     }
 }

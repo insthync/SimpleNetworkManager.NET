@@ -1,5 +1,4 @@
-﻿using Cysharp.Threading.Tasks;
-using Insthync.SimpleNetworkManager.NET.Messages;
+﻿using Insthync.SimpleNetworkManager.NET.Messages;
 using Insthync.SimpleNetworkManager.NET.Messages.Error;
 using Microsoft.Extensions.Logging;
 using System;
@@ -84,19 +83,19 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         /// <summary>
         /// Rejects a connection
         /// </summary>
-        public abstract UniTask RejectConnectionAsync(ConnectionErrorTypes errorType, string errorText, bool shouldRetry, int retryDelayMs);
+        public abstract Task RejectConnectionAsync(ConnectionErrorTypes errorType, string errorText, bool shouldRetry, int retryDelayMs);
 
         /// <summary>
         /// Sends a message asynchronously to the connected client
         /// </summary>
-        internal abstract UniTask SendMessageAsync(BaseMessage message);
+        internal abstract Task SendMessageAsync(BaseMessage message);
 
         /// <summary>
         /// Disconnects the client gracefully
         /// </summary>
-        internal abstract UniTask DisconnectAsync();
+        internal abstract Task DisconnectAsync();
 
-        internal async UniTask<TResponse> SendRequestAsync<TResponse>(BaseRequestMessage request, int timeoutMs = 10_000)
+        internal async Task<TResponse> SendRequestAsync<TResponse>(BaseRequestMessage request, int timeoutMs = 10_000)
             where TResponse : BaseResponseMessage
         {
             uint requestId = GetNewRequestId();
@@ -142,7 +141,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         /// <summary>
         /// Sends a serialization error message to the client
         /// </summary>
-        public async UniTask SendSerializationErrorAsync(uint? failedMessageType)
+        public async Task SendSerializationErrorAsync(uint? failedMessageType)
         {
             string failedMessageTypeErrorText = failedMessageType.HasValue ? failedMessageType.Value.ToString() : "Unknow";
             await SendErrorMessageAsync(MessageTypes.SerializationError, $"Serialization processing failed: {failedMessageTypeErrorText}");
@@ -151,7 +150,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         /// <summary>
         /// Sends a deserialization error message to the client
         /// </summary>
-        public async UniTask SendDeserializationErrorAsync(uint? failedMessageType)
+        public async Task SendDeserializationErrorAsync(uint? failedMessageType)
         {
             string failedMessageTypeErrorText = failedMessageType.HasValue ? failedMessageType.Value.ToString() : "Unknow";
             await SendErrorMessageAsync(MessageTypes.SerializationError, $"Deserialization processing failed: {failedMessageTypeErrorText}");
@@ -160,7 +159,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         /// <summary>
         /// Sends an unknown message type error to the client
         /// </summary>
-        public async UniTask SendUnknownMessageTypeErrorAsync(uint? failedMessageType)
+        public async Task SendUnknownMessageTypeErrorAsync(uint? failedMessageType)
         {
             string failedMessageTypeErrorText = failedMessageType.HasValue ? failedMessageType.Value.ToString() : "Unknow";
             await SendErrorMessageAsync(MessageTypes.UnknownMessageType, $"Message type not supported: {failedMessageTypeErrorText}");
@@ -169,7 +168,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         /// <summary>
         /// Sends a network error message to the client
         /// </summary>
-        public async UniTask SendNetworkErrorAsync(SocketException socketEx, bool shouldDisconnect = true)
+        public async Task SendNetworkErrorAsync(SocketException socketEx, bool shouldDisconnect = true)
         {
             try
             {
@@ -193,7 +192,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         /// <summary>
         /// Send a connection error message to the client
         /// </summary>
-        public async UniTask SendConnectionErrorAsync(ConnectionErrorTypes errorType, string errorText, bool shouldRetry, int retryDelayMs = 10_000)
+        public async Task SendConnectionErrorAsync(ConnectionErrorTypes errorType, string errorText, bool shouldRetry, int retryDelayMs = 10_000)
         {
             try
             {
@@ -218,7 +217,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         /// <summary>
         /// Sends a timeout error message to the client
         /// </summary>
-        public async UniTask SendTimeoutErrorAsync(string operation, int timeoutMs, string suggestedAction = "Retry the operation")
+        public async Task SendTimeoutErrorAsync(string operation, int timeoutMs, string suggestedAction = "Retry the operation")
         {
             try
             {
@@ -242,7 +241,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         /// <summary>
         /// Safely sends an error message without throwing exceptions
         /// </summary>
-        public async UniTask SendErrorMessageAsync(uint errorCode, string errorText)
+        public async Task SendErrorMessageAsync(uint errorCode, string errorText)
         {
             try
             {
