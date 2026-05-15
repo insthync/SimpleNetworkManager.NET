@@ -17,7 +17,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
         private int _runningPort;
 
         public override bool IsRunning => _isRunning;
-        public int RunningPort => _runningPort;
+        public override int RunningPort => _runningPort;
 
         public TcpNetworkServer(ILoggerFactory loggerFactory) : base(loggerFactory)
         {

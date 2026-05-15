@@ -23,6 +23,10 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         /// Indicates whether the server is currently running
         /// </summary>
         public abstract bool IsRunning { get; }
+        /// <summary>
+        /// The port which the server is listening on
+        /// </summary>
+        public abstract int RunningPort { get; }
 
         public BaseNetworkServer(ILoggerFactory loggerFactory)
         {
