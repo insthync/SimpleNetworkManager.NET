@@ -1,5 +1,9 @@
+using Insthync.SimpleNetworkManager.NET.Messages;
+using Insthync.SimpleNetworkManager.NET.Messages.Error;
+using Insthync.SimpleNetworkManager.NET.Network;
 using Insthync.SimpleNetworkManager.NET.Network.TcpTransport;
 using Insthync.SimpleNetworkManager.NET.Tests.Messages;
+using MessagePack;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System.Net;
@@ -55,6 +59,42 @@ namespace Insthync.SimpleNetworkManager.NET.Tests.Network.TcpTransport
             int port = ((IPEndPoint)listener.LocalEndpoint).Port;
             listener.Stop();
             return port;
+        }
+
+        private static async Task WriteMalformedTestMessageAsync(TcpNetworkClient client)
+        {
+            var connection = Assert.IsType<TcpClientConnection>(client.ClientConnection);
+            var stream = connection.TcpClient.GetStream();
+            byte[] frame = new byte[9];
+            BitConverter.GetBytes(frame.Length).CopyTo(frame, 0);
+            BitConverter.GetBytes((uint)1).CopyTo(frame, 4);
+            frame[8] = 0xC1;
+            await stream.WriteAsync(frame, 0, frame.Length);
+            await stream.FlushAsync();
+        }
+
+        private class ErrorMessageHandler : BaseMessageHandler<ErrorMessage>
+        {
+            public ErrorMessage? LastMessage { get; private set; }
+
+            protected override Task HandleAsync(BaseClientConnection clientConnection, ErrorMessage data)
+            {
+                LastMessage = data;
+                return Task.CompletedTask;
+            }
+        }
+
+        private class FailingSerializeMessage : BaseMessage
+        {
+            public override uint GetMessageType()
+            {
+                return 900;
+            }
+
+            protected override byte[] SerializeData()
+            {
+                throw new MessagePackSerializationException("Expected test serialization failure.");
+            }
         }
 
         [Fact]
@@ -274,6 +314,91 @@ namespace Insthync.SimpleNetworkManager.NET.Tests.Network.TcpTransport
 
             Assert.False(server.IsRunning);
             Assert.False(client.IsConnected);
+        }
+
+        [Fact]
+        public async Task SendMessageAsync_WhenSerializationFails_CompletesAndSendsError()
+        {
+            var server = await StartServerAsync();
+            var serverErrorHandler = new ErrorMessageHandler();
+            server.RegisterHandler(serverErrorHandler);
+            var client = new TcpNetworkClient(_loggerFactoryMock.Object);
+
+            await client.ConnectAsync("127.0.0.1", server.RunningPort, CancellationToken.None);
+            await WaitUntilAsync(() => server.ConnectionManager.ConnectionCount == 1);
+
+            var sendTask = client.SendMessageAsync(new FailingSerializeMessage());
+            var completedTask = await Task.WhenAny(sendTask, Task.Delay(2_000));
+            Assert.Same(sendTask, completedTask);
+            await sendTask;
+
+            await WaitUntilAsync(() => serverErrorHandler.LastMessage?.ErrorType == MessageTypes.SerializationError);
+            Assert.Contains("900", serverErrorHandler.LastMessage!.ErrorText);
+
+            await client.DisconnectAsync();
+            await server.StopAsync();
+        }
+
+        [Fact]
+        public async Task SendRequestAsync_WhenNoResponse_TimesOut()
+        {
+            var server = await StartServerAsync();
+            var client = new TcpNetworkClient(_loggerFactoryMock.Object);
+
+            await client.ConnectAsync("127.0.0.1", server.RunningPort, CancellationToken.None);
+
+            var exception = await Assert.ThrowsAsync<TimeoutException>(() =>
+                client.SendRequestAsync<TestResponseMessage>(new TestRequestMessage()
+                {
+                    stringVal = "NoHandler",
+                }, timeoutMs: 100));
+
+            Assert.Contains("RequestId", exception.Message);
+
+            await client.DisconnectAsync();
+            await server.StopAsync();
+        }
+
+        [Fact]
+        public async Task RouteMessageAsync_WhenMessageTypeUnknown_SendsError()
+        {
+            var server = await StartServerAsync();
+            var client = new TcpNetworkClient(_loggerFactoryMock.Object);
+            var clientErrorHandler = new ErrorMessageHandler();
+            client.RegisterHandler(clientErrorHandler);
+
+            await client.ConnectAsync("127.0.0.1", server.RunningPort, CancellationToken.None);
+
+            await client.SendMessageAsync(new TestMessage()
+            {
+                stringVal = "NoHandler",
+            });
+
+            await WaitUntilAsync(() => clientErrorHandler.LastMessage?.ErrorType == MessageTypes.UnknownMessageType);
+            Assert.Contains("1", clientErrorHandler.LastMessage!.ErrorText);
+
+            await client.DisconnectAsync();
+            await server.StopAsync();
+        }
+
+        [Fact]
+        public async Task RouteMessageAsync_WhenPayloadMalformed_SendsDeserializationError()
+        {
+            var server = await StartServerAsync();
+            server.RegisterHandler(new TestMessageHandler());
+            var client = new TcpNetworkClient(_loggerFactoryMock.Object);
+            var clientErrorHandler = new ErrorMessageHandler();
+            client.RegisterHandler(clientErrorHandler);
+
+            await client.ConnectAsync("127.0.0.1", server.RunningPort, CancellationToken.None);
+
+            await WriteMalformedTestMessageAsync(client);
+
+            await WaitUntilAsync(() => clientErrorHandler.LastMessage?.ErrorType == MessageTypes.DeserializationError);
+            Assert.Contains("1", clientErrorHandler.LastMessage!.ErrorText);
+
+            await client.DisconnectAsync();
+            await server.StopAsync();
         }
 
         [Fact]
