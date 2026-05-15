@@ -17,6 +17,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
         private int _runningPort;
 
         public override bool IsRunning => _isRunning;
+        public int RunningPort => _runningPort;
 
         public TcpNetworkServer(ILoggerFactory loggerFactory) : base(loggerFactory)
         {
@@ -38,6 +39,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
                 // Create TCP listener
                 _tcpListener = new TcpListener(IPAddress.Any, port);
                 _tcpListener.Start();
+                _runningPort = ((IPEndPoint)_tcpListener.LocalEndpoint).Port;
 
                 // Create cancellation token source for server operations
                 _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -46,8 +48,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
 
                 // Start accepting connections
                 _acceptConnectionsTask = AcceptConnectionsAsync(_cancellationTokenSource.Token);
-                _runningPort = port;
-                _logger.LogInformation("TCP server started successfully on port {Port}", port);
+                _logger.LogInformation("TCP server started successfully on port {Port}", _runningPort);
             }
             catch (Exception ex)
             {
@@ -98,6 +99,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
                 await _connectionManager.DisconnectAllClientsAsync();
 
                 _isRunning = false;
+                _runningPort = 0;
                 _logger.LogInformation("TCP server stopped successfully");
             }
             catch (Exception ex)
