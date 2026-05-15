@@ -1,6 +1,7 @@
 ﻿using Insthync.SimpleNetworkManager.NET.Messages;
 using System;
 using System.Buffers;
+using System.Buffers.Binary;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -46,7 +47,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
                 if (bytesRead < 4)
                     return null;
 
-                int dataSize = BitConverter.ToInt32(sizeBuffer, 0);
+                int dataSize = BinaryPrimitives.ReadInt32LittleEndian(sizeMemory.Span);
                 int minSize = 8;
                 int maxSize = 1024 * 1024; // 1 MB limit
                 if (dataSize < minSize || dataSize > maxSize)
@@ -112,7 +113,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
                 if (bytesRead < 4)
                     return null; // Connection closed
 
-                int dataSize = BitConverter.ToInt32(sizeBuffer, 0);
+                int dataSize = BinaryPrimitives.ReadInt32LittleEndian(sizeSpan);
                 const int minSize = 8;
                 const int maxSize = 1024 * 1024; // 1 MB limit
                 if (dataSize < minSize || dataSize > maxSize)

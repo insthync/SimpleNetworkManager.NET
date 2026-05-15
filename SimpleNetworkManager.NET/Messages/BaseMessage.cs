@@ -1,5 +1,6 @@
 ﻿using MessagePack;
 using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 
 namespace Insthync.SimpleNetworkManager.NET.Messages
@@ -50,7 +51,7 @@ namespace Insthync.SimpleNetworkManager.NET.Messages
         }
 
         /// <summary>
-        /// Serializes the message to binary format: size(int) + messageType(uint) + data(MessagePack)
+        /// Serializes the message to binary format: size(int32 little-endian) + messageType(uint32 little-endian) + data(MessagePack)
         /// Uses the abstract GetMessageType() function from the concrete class.
         /// </summary>
         /// <returns>Binary representation of the message</returns>
@@ -63,10 +64,10 @@ namespace Insthync.SimpleNetworkManager.NET.Messages
             var buffer = new byte[8 + messageData.Length];
 
             // Write total size (including header)
-            BitConverter.GetBytes(buffer.Length).CopyTo(buffer, 0);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.AsSpan(0, 4), buffer.Length);
 
             // Write message type (uses the abstract function from concrete class)
-            BitConverter.GetBytes(GetMessageType()).CopyTo(buffer, 4);
+            BinaryPrimitives.WriteUInt32LittleEndian(buffer.AsSpan(4, 4), GetMessageType());
 
             // Write message data
             messageData.CopyTo(buffer, 8);
@@ -86,12 +87,12 @@ namespace Insthync.SimpleNetworkManager.NET.Messages
                 throw new ArgumentException("Data too short to contain message header");
 
             // Read total size (for validation)
-            var totalSize = BitConverter.ToInt32(message, 0);
+            var totalSize = BinaryPrimitives.ReadInt32LittleEndian(message.AsSpan(0, 4));
             if (totalSize != messageLength)
                 throw new ArgumentException("Message size mismatch");
 
             // Read message type
-            messageType = BitConverter.ToUInt32(message, 4);
+            messageType = BinaryPrimitives.ReadUInt32LittleEndian(message.AsSpan(4, 4));
 
             // Extract message data
             var messageData = new byte[messageLength - 8];

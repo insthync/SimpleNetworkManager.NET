@@ -6,6 +6,7 @@ using Insthync.SimpleNetworkManager.NET.Tests.Messages;
 using MessagePack;
 using Microsoft.Extensions.Logging;
 using Moq;
+using System.Buffers.Binary;
 using System.Net;
 using System.Net.Sockets;
 
@@ -66,8 +67,8 @@ namespace Insthync.SimpleNetworkManager.NET.Tests.Network.TcpTransport
             var connection = Assert.IsType<TcpClientConnection>(client.ClientConnection);
             var stream = connection.TcpClient.GetStream();
             byte[] frame = new byte[9];
-            BitConverter.GetBytes(frame.Length).CopyTo(frame, 0);
-            BitConverter.GetBytes((uint)1).CopyTo(frame, 4);
+            BinaryPrimitives.WriteInt32LittleEndian(frame.AsSpan(0, 4), frame.Length);
+            BinaryPrimitives.WriteUInt32LittleEndian(frame.AsSpan(4, 4), 1);
             frame[8] = 0xC1;
             await stream.WriteAsync(frame, 0, frame.Length);
             await stream.FlushAsync();

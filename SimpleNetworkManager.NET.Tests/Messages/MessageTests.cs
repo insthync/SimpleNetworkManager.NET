@@ -1,5 +1,6 @@
 ﻿using Insthync.SimpleNetworkManager.NET.Messages;
 using MessagePack;
+using System.Buffers.Binary;
 
 namespace Insthync.SimpleNetworkManager.NET.Tests.Messages
 {
@@ -19,7 +20,7 @@ namespace Insthync.SimpleNetworkManager.NET.Tests.Messages
             var serializedData = originalMessage.Serialize();
 
             // Find if data length is correct or not
-            int comparingLength = BitConverter.ToInt32(serializedData, 0);
+            int comparingLength = BinaryPrimitives.ReadInt32LittleEndian(serializedData.AsSpan(0, 4));
             Assert.Equal(serializedData.Length, comparingLength);
 
             // Extract message data and verify header
