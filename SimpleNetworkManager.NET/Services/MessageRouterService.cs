@@ -76,13 +76,48 @@ namespace Insthync.SimpleNetworkManager.NET.Services
             if (buffer == null)
                 throw new ArgumentNullException(nameof(buffer));
 
-            var data = BaseMessage.ExtractMessageData(buffer, length, out var messageType);
-            if (_handlers.TryGetValue(messageType, out var handler))
+            byte[] data;
+            uint messageType;
+            try
             {
-                var messageInstance = handler.GetMessageInstance();
-                var dataType = messageInstance.GetType();
-                await handler.HandleDataAsync(clientConnection, MessagePackSerializer.Deserialize(messageInstance.GetType(), data, messageInstance.GetMessagePackOptions()));
+                data = BaseMessage.ExtractMessageData(buffer, length, out messageType);
             }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to extract message header");
+                await clientConnection.SendDeserializationErrorAsync(null);
+                return;
+            }
+
+            if (!_handlers.TryGetValue(messageType, out var handler))
+            {
+                _logger.LogWarning("No handler registered for message type {MessageType}", messageType);
+                if (!MessageTypes.IsProtocolErrorMessageType(messageType))
+                    await clientConnection.SendUnknownMessageTypeErrorAsync(messageType);
+                return;
+            }
+
+            var messageInstance = handler.GetMessageInstance();
+            object? deserializedMessage;
+            try
+            {
+                deserializedMessage = MessagePackSerializer.Deserialize(messageInstance.GetType(), data, messageInstance.GetMessagePackOptions());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to deserialize message type {MessageType}", messageType);
+                await clientConnection.SendDeserializationErrorAsync(messageType);
+                return;
+            }
+
+            if (deserializedMessage == null)
+            {
+                _logger.LogWarning("Message type {MessageType} deserialized to null", messageType);
+                await clientConnection.SendDeserializationErrorAsync(messageType);
+                return;
+            }
+
+            await handler.HandleDataAsync(clientConnection, deserializedMessage);
         }
     }
 }

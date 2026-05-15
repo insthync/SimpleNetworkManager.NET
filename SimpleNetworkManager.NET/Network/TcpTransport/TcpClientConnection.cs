@@ -5,6 +5,7 @@ using System;
 using System.Buffers;
 using System.IO;
 using System.Net.Sockets;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -130,6 +131,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
                     {
                         _logger.LogWarning(ex, "Error during client {ConnectionId} cleanup", ConnectionId);
                     }
+                    FailPendingResponses(new IOException("Connection closed while waiting for a response."));
                     OnDisconnected();
                 }
             }
@@ -224,11 +226,16 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
                 return;
             }
 
+            uint messageType = message.GetMessageType();
+            bool sendSerializationError = false;
+            SocketException? socketException = null;
+            bool shouldDisconnectAfterSocketError = false;
+            bool shouldDisconnect = false;
+            ExceptionDispatchInfo? capturedException = null;
+
             await _sendSemaphore.WaitAsync(_cancellationTokenSource.Token);
             try
             {
-                uint messageType = message.GetMessageType();
-
                 try
                 {
                     await _networkStream.WriteMessageAsync(message, _cancellationTokenSource.Token);
@@ -238,9 +245,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
                     _logger.LogError(ex, "MessagePack serialization failed for message type {MessageType} to client {ConnectionId}",
                         messageType, ConnectionId);
 
-                    // Send error response instead of disconnecting
-                    await SendSerializationErrorAsync(messageType);
-                    return;
+                    sendSerializationError = true;
                 }
                 catch (Exception ex)
                 {
@@ -249,48 +254,35 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
                     throw;
                 }
 
-                _logger.LogDebug("Sent message type {MessageType} to client {ConnectionId}",
-                    messageType, ConnectionId);
+                if (!sendSerializationError)
+                {
+                    _logger.LogDebug("Sent message type {MessageType} to client {ConnectionId}",
+                        messageType, ConnectionId);
+                }
             }
             catch (SocketException ex)
             {
                 _logger.LogWarning(ex, "Socket error sending message to client {ConnectionId}: {ErrorCode}",
                     ConnectionId, ex.SocketErrorCode);
 
-                // Try to send network error before disconnecting (if connection is still viable)
-                if (IsRecoverableSocketError(ex.SocketErrorCode))
-                {
-                    await SendNetworkErrorAsync(ex, shouldDisconnect: false);
-                }
-                else
-                {
-                    await SendNetworkErrorAsync(ex, shouldDisconnect: true);
-                    await DisconnectAsync();
-                }
-                throw;
+                socketException = ex;
+                shouldDisconnectAfterSocketError = !IsRecoverableSocketError(ex.SocketErrorCode);
+                capturedException = ExceptionDispatchInfo.Capture(ex);
             }
             catch (IOException ex) when (ex.InnerException is SocketException socketEx)
             {
                 _logger.LogWarning(ex, "Network I/O error sending message to client {ConnectionId}: {SocketError}",
                     ConnectionId, socketEx.SocketErrorCode);
 
-                // Try to send network error before disconnecting (if connection is still viable)
-                if (IsRecoverableSocketError(socketEx.SocketErrorCode))
-                {
-                    await SendNetworkErrorAsync(socketEx, shouldDisconnect: false);
-                }
-                else
-                {
-                    await SendNetworkErrorAsync(socketEx, shouldDisconnect: true);
-                    await DisconnectAsync();
-                }
-                throw;
+                socketException = socketEx;
+                shouldDisconnectAfterSocketError = !IsRecoverableSocketError(socketEx.SocketErrorCode);
+                capturedException = ExceptionDispatchInfo.Capture(ex);
             }
-            catch (ObjectDisposedException)
+            catch (ObjectDisposedException ex)
             {
                 _logger.LogDebug("Network stream disposed while sending message to client {ConnectionId}", ConnectionId);
-                await DisconnectAsync();
-                throw;
+                shouldDisconnect = true;
+                capturedException = ExceptionDispatchInfo.Capture(ex);
             }
             catch (OperationCanceledException) when (_cancellationTokenSource.Token.IsCancellationRequested)
             {
@@ -300,12 +292,34 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unexpected error sending message to client {ConnectionId}", ConnectionId);
-                await DisconnectAsync();
-                throw;
+                shouldDisconnect = true;
+                capturedException = ExceptionDispatchInfo.Capture(ex);
             }
             finally
             {
                 _sendSemaphore.Release();
+            }
+
+            if (sendSerializationError)
+            {
+                if (!MessageTypes.IsProtocolErrorMessageType(messageType))
+                    await SendSerializationErrorAsync(messageType);
+                return;
+            }
+
+            if (socketException != null)
+            {
+                if (!MessageTypes.IsProtocolErrorMessageType(messageType))
+                    await SendNetworkErrorAsync(socketException, shouldDisconnectAfterSocketError);
+                if (shouldDisconnectAfterSocketError)
+                    await DisconnectAsync();
+                capturedException?.Throw();
+            }
+
+            if (shouldDisconnect)
+            {
+                await DisconnectAsync();
+                capturedException?.Throw();
             }
         }
 
@@ -328,6 +342,8 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
             {
                 _logger.LogWarning(ex, "Error during client {ConnectionId} disconnection", ConnectionId);
             }
+
+            FailPendingResponses(new OperationCanceledException("Connection disconnected."));
 
             // Raise disconnected event
             OnDisconnected();

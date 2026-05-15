@@ -9,5 +9,11 @@
         public const uint TimeoutError = 503;
         public const uint UnknownMessageType = 504;
         public const uint SerializationError = 505;
+        public const uint DeserializationError = 506;
+
+        public static bool IsProtocolErrorMessageType(uint messageType)
+        {
+            return messageType >= 500 && messageType <= 599;
+        }
     }
 }

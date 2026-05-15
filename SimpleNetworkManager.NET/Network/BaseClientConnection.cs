@@ -15,10 +15,9 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         private static ConcurrentQueue<uint> s_unassignedConnectionIds = new ConcurrentQueue<uint>();
 
         private static int s_requestIdCounter = 0;
-        private static ConcurrentQueue<uint> s_unassignedRequestIds = new ConcurrentQueue<uint>();
 
         protected readonly ILogger<BaseClientConnection> _logger;
-        protected readonly ConcurrentDictionary<uint, BaseResponseMessage> _pendingResponses;
+        protected readonly ConcurrentDictionary<uint, TaskCompletionSource<BaseResponseMessage>> _pendingResponses;
         protected bool _disposed;
 
         public uint ConnectionId { get; protected set; }
@@ -33,7 +32,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         public BaseClientConnection(ILogger<BaseClientConnection> logger)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _pendingResponses = new ConcurrentDictionary<uint, BaseResponseMessage>();
+            _pendingResponses = new ConcurrentDictionary<uint, TaskCompletionSource<BaseResponseMessage>>();
         }
 
         private static uint InterlockedIncrementUInt(ref int location)
@@ -51,8 +50,12 @@ namespace Insthync.SimpleNetworkManager.NET.Network
 
         private static uint GetNewRequestId()
         {
-            if (!s_unassignedRequestIds.TryDequeue(out uint requestId))
+            uint requestId;
+            do
+            {
                 requestId = InterlockedIncrementUInt(ref s_requestIdCounter);
+            }
+            while (requestId == 0);
             return requestId;
         }
 
@@ -99,35 +102,38 @@ namespace Insthync.SimpleNetworkManager.NET.Network
             where TResponse : BaseResponseMessage
         {
             uint requestId = GetNewRequestId();
+            var responseCompletion = new TaskCompletionSource<BaseResponseMessage>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            if (!_pendingResponses.TryAdd(requestId, responseCompletion))
+            {
+                throw new InvalidOperationException($"Request ID collision detected for RequestId: {requestId}.");
+            }
+
             request.RequestId = requestId;
-            await SendMessageAsync(request);
 
-            // Waiting for the response
-            BaseResponseMessage? response;
-            do
+            try
             {
+                await SendMessageAsync(request);
+
                 if (timeoutMs <= 0)
+                    throw new TimeoutException($"Request timed out after {timeoutMs} milliseconds (RequestId: {requestId}).");
+
+                var completedTask = await Task.WhenAny(responseCompletion.Task, Task.Delay(timeoutMs));
+                if (completedTask != responseCompletion.Task)
+                    throw new TimeoutException($"Request timed out after {timeoutMs} milliseconds (RequestId: {requestId}).");
+
+                var response = await responseCompletion.Task;
+                if (!(response is TResponse castedResponse))
                 {
-                    response = null;
-                    break;
+                    throw new InvalidOperationException($"Response type mismatch. Expected {typeof(TResponse).Name}, got {response.GetType().Name}");
                 }
-                await Task.Delay(100);
-                timeoutMs -= 100;
-            }
-            while (!_pendingResponses.TryRemove(requestId, out response));
-            s_unassignedRequestIds.Enqueue(requestId);
 
-            if (response == null)
+                return castedResponse;
+            }
+            finally
             {
-                throw new TimeoutException($"Request timed out after {timeoutMs} milliseconds (RequestId: {requestId}).");
+                _pendingResponses.TryRemove(requestId, out _);
             }
-
-            if (!(response is TResponse castedResponse))
-            {
-                throw new InvalidOperationException($"Response type mismatch. Expected {typeof(TResponse).Name}, got {response.GetType().Name}");
-            }
-
-            return castedResponse;
         }
 
         internal void Responded(BaseResponseMessage? response)
@@ -135,7 +141,25 @@ namespace Insthync.SimpleNetworkManager.NET.Network
             if (response == null)
                 return;
             uint requestId = response.RequestId;
-            _pendingResponses.TryAdd(requestId, response);
+            if (_pendingResponses.TryRemove(requestId, out var responseCompletion))
+            {
+                responseCompletion.TrySetResult(response);
+            }
+            else
+            {
+                _logger.LogDebug("Received response for unknown or timed-out RequestId: {RequestId}", requestId);
+            }
+        }
+
+        protected void FailPendingResponses(Exception exception)
+        {
+            foreach (var pendingResponse in _pendingResponses)
+            {
+                if (_pendingResponses.TryRemove(pendingResponse.Key, out var responseCompletion))
+                {
+                    responseCompletion.TrySetException(exception);
+                }
+            }
         }
 
         /// <summary>
@@ -143,7 +167,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         /// </summary>
         public async Task SendSerializationErrorAsync(uint? failedMessageType)
         {
-            string failedMessageTypeErrorText = failedMessageType.HasValue ? failedMessageType.Value.ToString() : "Unknow";
+            string failedMessageTypeErrorText = failedMessageType.HasValue ? failedMessageType.Value.ToString() : "Unknown";
             await SendErrorMessageAsync(MessageTypes.SerializationError, $"Serialization processing failed: {failedMessageTypeErrorText}");
         }
 
@@ -152,8 +176,8 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         /// </summary>
         public async Task SendDeserializationErrorAsync(uint? failedMessageType)
         {
-            string failedMessageTypeErrorText = failedMessageType.HasValue ? failedMessageType.Value.ToString() : "Unknow";
-            await SendErrorMessageAsync(MessageTypes.SerializationError, $"Deserialization processing failed: {failedMessageTypeErrorText}");
+            string failedMessageTypeErrorText = failedMessageType.HasValue ? failedMessageType.Value.ToString() : "Unknown";
+            await SendErrorMessageAsync(MessageTypes.DeserializationError, $"Deserialization processing failed: {failedMessageTypeErrorText}");
         }
 
         /// <summary>
@@ -161,7 +185,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
         /// </summary>
         public async Task SendUnknownMessageTypeErrorAsync(uint? failedMessageType)
         {
-            string failedMessageTypeErrorText = failedMessageType.HasValue ? failedMessageType.Value.ToString() : "Unknow";
+            string failedMessageTypeErrorText = failedMessageType.HasValue ? failedMessageType.Value.ToString() : "Unknown";
             await SendErrorMessageAsync(MessageTypes.UnknownMessageType, $"Message type not supported: {failedMessageTypeErrorText}");
         }
 
@@ -293,6 +317,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network
                 return;
 
             _disposed = true;
+            FailPendingResponses(new ObjectDisposedException(GetType().Name));
             UnassignConnectionId();
         }
     }
