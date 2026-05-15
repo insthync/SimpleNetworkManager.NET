@@ -34,8 +34,6 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
 
             _cancellationTokenSource = new CancellationTokenSource();
             _sendSemaphore = new SemaphoreSlim(1, 1);
-            _cancellationTokenSource = new CancellationTokenSource();
-            _sendSemaphore = new SemaphoreSlim(1, 1);
 
             // Configure connection timeouts with error handling
             try
