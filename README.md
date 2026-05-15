@@ -4,6 +4,7 @@ A simple .NET (TCP + MessagePack) network manager.
 Wire frames use a fixed little-endian header: `size:int32` + `messageType:uint32` + MessagePack payload.
 
 ## How to serve and make connection
+TCP transport:
 ```
 // Run a server at port 7890
 var server = new TcpNetworkServer(_loggerFactoryMock.Object);
@@ -24,6 +25,33 @@ await client.ConnectAsync("127.0.0.1", 7890, CancellationToken.None);
 ```
 
 `ConnectAsync` throws if the TCP connection cannot be established, and the client remains disconnected after a failed attempt.
+
+WebSocket transport:
+```
+using Insthync.SimpleNetworkManager.NET.Network.WebSocketTransport;
+
+// Run a WebSocket server at port 7890
+var server = new WebSocketNetworkServer(_loggerFactoryMock.Object);
+await server.StartAsync(7890, CancellationToken.None);
+
+// Connect to ws://127.0.0.1:7890/
+var client = new WebSocketNetworkClient(_loggerFactoryMock.Object);
+await client.ConnectAsync("127.0.0.1", 7890, CancellationToken.None);
+```
+
+To connect to a custom WebSocket path, set `Path` before connecting or use the URI overload.
+
+```
+var client = new WebSocketNetworkClient(_loggerFactoryMock.Object)
+{
+    Path = "/network"
+};
+await client.ConnectAsync("127.0.0.1", 7890, CancellationToken.None);
+
+await client.ConnectAsync(new Uri("ws://127.0.0.1:7890/network"), CancellationToken.None);
+```
+
+The WebSocket transport uses binary WebSocket messages. The payload inside each WebSocket message is the same SimpleNetworkManager.NET frame format.
 
 ## How to stop, disconnect
 ```
