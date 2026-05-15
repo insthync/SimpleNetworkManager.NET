@@ -26,6 +26,8 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
                 return;
             }
 
+            CleanupConnectionResources();
+
             try
             {
                 // Create TCP client
@@ -34,7 +36,7 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
                 // Create cancellation token source for client operations
                 _cancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
-                await _tcpClient.ConnectAsync(hostname, port);
+                await ConnectWithCancellationAsync(_tcpClient, hostname, port, _cancellationTokenSource.Token);
 
                 _clientConnection = new TcpClientConnection(_tcpClient, _loggerFactory.CreateLogger<TcpClientConnection>());
 
@@ -47,32 +49,83 @@ namespace Insthync.SimpleNetworkManager.NET.Network.TcpTransport
                 _logger.LogInformation("Client connected: RemoteEndPoint={RemoteEndPoint}",
                     _clientConnection.TcpClient.Client.RemoteEndPoint);
             }
-            catch (ObjectDisposedException)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                // TCP client was disposed, likely during shutdown
-                _logger.LogDebug("TCP client disposed, stopping connection");
-                return;
+                _logger.LogDebug("Connection cancelled");
+                CleanupConnectionResources();
+                throw;
             }
             catch (SocketException ex)
             {
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    _logger.LogDebug("Connection cancelled");
-                    return;
-                }
-
                 _logger.LogWarning(ex, "Socket error while making connection");
-
-                // Brief delay before retrying to avoid tight loop on persistent errors
-                await Task.Delay(1000, cancellationToken);
+                CleanupConnectionResources();
+                throw;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unexpected error while making connection");
-
-                // Brief delay before retrying
-                await Task.Delay(1000, cancellationToken);
+                CleanupConnectionResources();
+                throw;
             }
+        }
+
+        private static async Task ConnectWithCancellationAsync(TcpClient tcpClient, string hostname, int port, CancellationToken cancellationToken)
+        {
+            if (!cancellationToken.CanBeCanceled)
+            {
+                await tcpClient.ConnectAsync(hostname, port);
+                return;
+            }
+
+            using (cancellationToken.Register(state => ((TcpClient)state!).Close(), tcpClient))
+            {
+                try
+                {
+                    await tcpClient.ConnectAsync(hostname, port);
+                }
+                catch (ObjectDisposedException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw new OperationCanceledException(cancellationToken);
+                }
+                catch (SocketException) when (cancellationToken.IsCancellationRequested)
+                {
+                    throw new OperationCanceledException(cancellationToken);
+                }
+            }
+        }
+
+        private void CleanupConnectionResources()
+        {
+            try
+            {
+                _clientConnection?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error disposing previous client connection");
+            }
+
+            try
+            {
+                _tcpClient?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error disposing TCP client");
+            }
+
+            try
+            {
+                _cancellationTokenSource?.Dispose();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error disposing connection cancellation token source");
+            }
+
+            _clientConnection = null;
+            _tcpClient = null;
+            _cancellationTokenSource = null;
         }
     }
 }
